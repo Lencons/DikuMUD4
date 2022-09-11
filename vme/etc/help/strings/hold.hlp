@@ -1,0 +1,29 @@
+<div class="mw-parser-output"><h1>Hold</h1>
+<p>Usage:
+</p>
+<pre> hold (item)
+</pre>
+<p>Lets you hold an item in the hand. 
+</p><p>E.g. for wands wands and staves. To use such an item you must hold 
+it in your hand. It is possible to hold an item in one hand, and wield 
+a singlehanded weapon in another. It is also possible to wield two
+single-handed weapons by wielding one weapon and holding the other
+weapon in your hand.
+</p>
+<pre> wield sword
+ hold dagger
+</pre>
+<p>See Also:
+</p>
+<pre> &gt; <a cmd='#'>Help Weapons</a>
+ &gt; <a cmd='#'>Help Wands</a>
+ &gt; <a cmd='#'>Help Staves</a>
+ &gt; <a cmd='#'>Help Wield</a>
+ &gt; <a cmd='#'>Help Wear</a>
+ &gt; <a cmd='#'>Help Remove</a>
+</pre>
+
+
+
+
+</div>

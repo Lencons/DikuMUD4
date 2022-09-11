@@ -1,0 +1,36 @@
+<div class="mw-parser-output"><h1>Halfling</h1>
+<p>Halflings are a small, quick, and notoriously witty people, few
+races can stay mad at a halfling for long (unless one of their thieves has
+robbed you blind (wink). Most live contentedly by farming and spending
+time with family and friends some however grow bored and seek adventure
+away from their shire, becoming the renowned thieves their race is
+noted for. Halfling food and wines are legendary. The halflings having
+spent centuries perfecting their formulas. Most halflings are very
+motivated by profit, becoming the bunt of many jokes (would sell his
+grandmother for a profit, etc) halfling magic tends to be limited to
+utilitarian spells and spells used amuse and entertain, although those 
+who choose the path of healing are revered and viewed as figures of
+great authority. Halflings mortal enemies are the trolls. A Halfling is
+almost always willing to help you lighten your wallet, usually in some way
+that does not involve physical labor on their part.
+</p><p>Halflings make excellent thieves due to thier high DEX bonus. They'll dual 
+class well as a thief / mage.
+</p>
+<pre> magic 0
+ divine -1 
+ strength 0 
+ dexterity +3 
+ constitution 0
+ charisma 0
+ brain -1
+ hit points -1
+</pre>
+<p>See also:
+</p>
+<pre> &gt; <a cmd='#'>Help Races</a>
+</pre>
+
+
+
+
+</div>

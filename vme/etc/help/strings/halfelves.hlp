@@ -1,0 +1,28 @@
+<div class="mw-parser-output"><h1>Half-Elves</h1>
+<p>Half-elves are simply the result of humans and elves interbreeding.
+The tend to be free to live with either, though some find them
+offensive. A their race retain many of the traits of both races, 
+notably their human parent's potential to excel in many fields.
+Half-elves are particularly connected with divine powers and make
+excellent clerics.
+</p><p>Half elves are excellent clerics and multi-class well as a cleric / thief
+secondarily as a cleric / warrior.
+</p>
+<pre> magic -2
+ divine +3
+ strength 0
+ dexterity +1
+ constitution -3
+ charisma +2
+ brain 0
+ hit points -1
+</pre>
+<p>See also:
+</p>
+<pre> &gt; <a cmd='#'>Help Races</a>
+</pre>
+
+
+
+
+</div>

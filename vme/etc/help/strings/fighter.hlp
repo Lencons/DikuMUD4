@@ -1,0 +1,37 @@
+<div class="mw-parser-output"><h1>Fighter profession</h1>
+<p>Primary stats: HP, STR
+</p><p>Specialization option: Barbarian profession
+</p><p>The fighter is devoted mostly to melee combat, using weapons.
+Strength determines how hard a fighter hits and dexterity determines how 
+likely a fighter is to dodge or pull of a fancy move. Fighter skills mainly
+relate to battle and determining their opponent's health. Fighters
+train in many weapons. The more skill one has in a weapon, the more often
+and better they are at hitting with it.
+</p><p>Attributes:
+</p>
+<pre> HP	+3
+ Str	+2
+ Con	+1
+ Dex	 0
+ Cha	-2
+ Bra	-1
+ Div	-5
+ Mag	-7
+</pre>
+<p><br />
+See Also:
+</p>
+<pre> &gt; <a cmd='#'>Help Barbarian</a>
+ &gt; <a cmd='#'>Help Strength</a>
+ &gt; <a cmd='#'>Help Constitution</a>
+ &gt; <a cmd='#'>Help Dexterity</a>
+ &gt; <a cmd='#'>Help Hitpoints</a>
+ &gt; <a cmd='#'>Help Fighter Roleplay</a>
+ &gt; <a cmd='#'>Help Fighter Skills</a>
+ &gt; <a cmd='#'>Help Fighter Weapons</a>
+</pre>
+
+
+
+
+</div>
