@@ -18,5 +18,4 @@ CMakeDoxyfile.in
 CMakeDoxygenDefaults.cmake
 Testing/
 unit_tests/CTestTestfile.cmake
-core.*
 gmon.out
