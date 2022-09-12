@@ -1,0 +1,6 @@
+# Don't add any player files to the repo
+*
+
+# Exclude file to ensure directory it added to repo
+!.gitignore
+
