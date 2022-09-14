@@ -1,9 +1,9 @@
-FROM ubuntu:latest as build
+FROM ubuntu:latest
 
-LABEL description="DikuMUD III Builder"
-WORKDIR /dikumud3
-ENV DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y build-essential ccache bison flex libboost-all-dev libssl-dev rapidjson-dev cmake
-COPY . .
-RUN mkdir dkr_build && cd dkr_build && cmake .. && make -j 4
-ENTRYPOINT [ "/dikumud3/entrypoint.sh" ]
+COPY vme vme
+
+RUN apt update && apt upgrade -y
+WORKDIR /vme
+
+EXPOSE 4242/tcp
+ENTRYPOINT [ "./entrypoint.sh" ]

@@ -19,3 +19,4 @@ CMakeDoxygenDefaults.cmake
 Testing/
 unit_tests/CTestTestfile.cmake
 gmon.out
+.vscode

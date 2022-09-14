@@ -1,0 +1,13 @@
+#--- Ignore unrelated stuff when building Dockerimage
+#- Directories
+.vscode
+CMakeFiles
+docs
+excel
+githooks
+unit_tests
+
+#- Files
+CMake*
+Makefile
+README*
