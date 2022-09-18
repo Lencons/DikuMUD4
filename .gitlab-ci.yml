@@ -5,9 +5,11 @@ stages:
 
 build-job:
   stage: build
-  image: gcc:12.2
+  #image: gcc:12.2
   before_script:
-    - apt-get update && apt-get install -y cmake bison flex libboost-all-dev libssl-dev rapidjson-dev doxygen graphviz dia mscgen
+    - apt-get update
+    - apt-get install -y gcc make cmake
+    - apt-get install -y cmake bison flex libboost-all-dev libssl-dev rapidjson-dev doxygen graphviz dia mscgen
   script:
     - echo "Compiling the code..."
     - cmake .
