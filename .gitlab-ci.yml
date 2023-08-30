@@ -1,7 +1,15 @@
 stages:
   - Build
   - Test
+  - Package
+  - Release
   - Deploy
+
+variables:
+  # Docker Image values
+  DOCKER_IMAGE_NAME: "dimku-mud"
+  DOCKER_BUILD_IMAGE: "$CI_REGISTRY_IMAGE/$DOCKER_IMAGE_NAME"
+
 
 Compile:
   stage: Build
@@ -29,9 +37,82 @@ lint-test-job:   # This job also runs in the test stage.
     - sleep 10
     - echo "No lint issues found."
 
-deploy-job:      # This job runs in the deploy stage.
-  stage: Deploy  # It only runs when *both* jobs in the test stage complete successfully.
-  environment: production
+
+##
+## Package Jobs
+##
+
+
+DikuMUD:
+  stage: Package
+  tags:
+    - Docker
+
+  before_script:
+    # docker wants the password to be passed via stdin for security
+    - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  
   script:
-    - echo "Deploying application..."
-    - echo "Application successfully deployed."
+    # fetch the lastest image to speed up build
+    - docker pull $DOCKER_BUILD_IMAGE:latest || true
+
+    # build the container and push it into the registry
+    - >
+      docker build
+      --pull
+      --cache-from $DOCKER_BUILD_IMAGE:latest
+      --label "org.opencontainers.image.title=$CI_PROJECT_TITLE"
+      --label "org.opencontainers.image.url=$CI_PROJECT_URL"
+      --label "org.opencontainers.image.created=$CI_JOB_STARTED_AT"
+      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.version=$CI_COMMIT_REF_NAME"
+      --tag $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+      .
+    - docker push $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+
+
+##
+## Release Jobs
+##
+
+
+# For commits to the default branch, create a new "latest" tagged image
+DikuMUD-latest:
+  stage: Release
+  tags:
+    - Docker
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  variables:
+    # we do not need GitLab to clone the source code.
+    GIT_STRATEGY: none
+
+  before_script:
+    # docker wants the password to be passed via stdin for security
+    - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  
+  script:
+    - docker pull $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+    - docker tag $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA $DOCKER_BUILD_IMAGE:latest
+    - docker push $DOCKER_BUILD_IMAGE:latest
+
+
+# For commits that have an assigned tag, create a matching tagged image
+DikuMUD-tag:
+  stage: Release
+  tags:
+    - Docker
+  only:
+    - tags
+  variables:
+    # we do not need GitLab to clone the source code.
+    GIT_STRATEGY: none
+
+  before_script:
+    # docker wants the password to be passed via stdin for security
+    - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
+  
+  script:
+    - docker pull $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+    - docker tag $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA $DOCKER_BUILD_IMAGE:$CI_COMMIT_REF_NAME
+    - docker push $DOCKER_BUILD_IMAGE:$CI_COMMIT_REF_NAME
