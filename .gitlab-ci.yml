@@ -14,7 +14,7 @@ variables:
 Compile:
   stage: Build
   tags:
-      - Ubuntu
+      - Linux
   script:
     - apt-get update
     - apt-get install -y gcc g++ make cmake
