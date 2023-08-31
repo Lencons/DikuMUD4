@@ -21,7 +21,11 @@ Compile:
     - apt-get install -y bison flex libboost-all-dev libssl-dev rapidjson-dev
     - apt-get install -y doxygen graphviz dia mscgen
     - cmake .
-    - make all -j8
+    - make all -j4
+  artifacts:
+    paths:
+      - vme/bin/vme
+      - vme/bin/mplex
 
 unit-test-job:   # This job runs in the test stage.
   stage: Test    # It only starts when the job in the build stage completes successfully.
