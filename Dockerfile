@@ -5,6 +5,7 @@ RUN apt-get update \
   && apt-get install -y \
     libboost-all-dev \
     libssl-dev \
+    telnet \
   && rm -rf /var/lib/apt/lists/*
 
 # Create a user to own the services
