@@ -12,5 +12,5 @@ WORKDIR /vme
 RUN chmod 755 entrypoint.sh
 
 EXPOSE 4242/tcp
-ENTRYPOINT [ "entrypoint.sh" ]
+ENTRYPOINT [ "/vme/entrypoint.sh" ]
 #ENTRYPOINT [ "bash", "-c", "while true ; do sleep 600 ; done" ]
