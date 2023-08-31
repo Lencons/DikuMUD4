@@ -5,7 +5,7 @@ RUN useradd -d /vme -m -U -s /bin/bash dikumud
 USER dikumud:dikumud
 
 # Copy in all the required files for the server
-COPY vme vme
+COPY --chown=dikumud:dikumud vme vme
 WORKDIR /vme
 
 # This doesn't come out of the repositry executable
