@@ -9,8 +9,8 @@ COPY --chown=dikumud:dikumud vme vme
 WORKDIR /vme
 
 # This doesn't come out of the repositry executable
-RUN chmod 755 entrypoint.sh
+RUN chmod 755 /vme/entrypoint.sh
 
 EXPOSE 4242/tcp
-ENTRYPOINT [ "/vme/entrypoint.sh" ]
-#ENTRYPOINT [ "bash", "-c", "while true ; do sleep 600 ; done" ]
+#ENTRYPOINT [ "/vme/entrypoint.sh" ]
+ENTRYPOINT [ "bash", "-c", "while true ; do sleep 600 ; done" ]
