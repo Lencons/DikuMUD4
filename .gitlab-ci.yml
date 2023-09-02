@@ -14,7 +14,7 @@ variables:
 Compile:
   stage: Build
   tags:
-      - Linux
+    - Linux
   script:
     - apt-get update
     - apt-get install -y gcc g++ make cmake
@@ -23,14 +23,9 @@ Compile:
     - cmake .
     - make all -j4
 
-    # Copy documentation to pages (clean out any existing documentation first)
-    - rm -rf public
-    - mkdir public
-    - mv -f docs public/dikumud3
-
   artifacts:
     paths:
-      - public
+      - docs/*
       - vme/bin/vme
       - vme/bin/mplex
       - vme/zone/*.data
@@ -82,6 +77,22 @@ DikuMUD:
       --tag $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
       .
     - docker push $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+
+
+pages:
+  stage: Package
+  tags:
+    - Linux
+  script:
+    # Copy documentation to pages (clean out any existing documentation first)
+    - rm -rf public
+    - mkdir public
+    - mv -f docs public/dikumud3
+  artifacts:
+    paths:
+    - public
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
 
 ##
