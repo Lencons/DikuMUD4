@@ -22,8 +22,15 @@ Compile:
     - apt-get install -y doxygen graphviz dia mscgen
     - cmake .
     - make all -j4
+
+    # Copy documentation to pages (clean out any existing documentation first)
+    - rm -rf public
+    - mkdir public
+    - mv -f docs ../public/dikumud3
+
   artifacts:
     paths:
+      - public
       - vme/bin/vme
       - vme/bin/mplex
       - vme/zone/*.data
