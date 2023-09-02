@@ -26,7 +26,7 @@ Compile:
     # Copy documentation to pages (clean out any existing documentation first)
     - rm -rf public
     - mkdir public
-    - mv -f docs ../public/dikumud3
+    - mv -f docs public/dikumud3
 
   artifacts:
     paths:
