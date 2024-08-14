@@ -16,10 +16,6 @@ Compile:
   tags:
     - Linux
   script:
-    - apt-get update
-    - apt-get install -y gcc g++ make cmake
-    - apt-get install -y bison flex libboost-all-dev libssl-dev rapidjson-dev
-    - apt-get install -y doxygen graphviz dia mscgen
     - cmake .
     - make all -j4
 
