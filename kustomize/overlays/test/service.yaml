@@ -1,0 +1,24 @@
+---
+# DikuMUD text based Telnet interface.
+apiVersion: v1
+kind: Service
+metadata:
+  name: dikumud-test
+  labels:
+    app.kubernetes.io/name: dikumud-test
+    app.kubernetes.io/instance: dikumud-test
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: dikumud
+spec:
+  selector:
+    app.kubernetes.io/name: dikumud-test
+    app.kubernetes.io/instance: dikumud-test
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: dikumud
+  ports:
+    - name: telnet
+      protocol: TCP
+      port: 4343
+      targetPort: telnet
+  type: LoadBalancer
+  

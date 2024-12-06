@@ -7,7 +7,7 @@ stages:
 
 variables:
   # Docker Image values
-  DOCKER_IMAGE_NAME: "dikumud3"
+  DOCKER_IMAGE_NAME: "dikumud"
   DOCKER_BUILD_IMAGE: "$CI_REGISTRY_IMAGE/$DOCKER_IMAGE_NAME"
 
 
