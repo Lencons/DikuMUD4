@@ -1,0 +1,10 @@
+# Direct any unassigned resources to the dikumud namespace
+defaultNamespace: dikumud
+
+targetCustomizations:
+- name: prod
+  clusterSelector:
+    matchLabels:
+      env: core
+  kustomize:
+    dir: overlays/production
