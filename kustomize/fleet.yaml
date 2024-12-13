@@ -8,3 +8,9 @@ targetCustomizations:
       env: core
   kustomize:
     dir: overlays/production
+- name: test
+  clusterSelector:
+    matchLabels:
+      env: core
+  kustomize:
+    dir: overlays/test

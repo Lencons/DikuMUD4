@@ -149,6 +149,18 @@ DikuMUD-latest:
     RELEASE_TAG: "latest"
 
 
+# Release: Latest Test Image
+#
+# Any commits to the "test" branch in the project will be released as the
+# "test" image.
+DikuMUD-latest:
+  extends: .release_image
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+  variables:
+    RELEASE_TAG: "test"
+
+
 # Release: Release Tag
 #
 # When Releases are created, the commit will be given the Tag associated with
