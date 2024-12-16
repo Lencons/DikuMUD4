@@ -1,4 +1,4 @@
-FROM debian:bookworm
+FROM ubuntu:22.04
 
 # Configure DikuMUD installation variables.
 ENV VME_ROOT=/vme
