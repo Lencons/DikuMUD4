@@ -1,11 +1,10 @@
-FROM alpine:3.20
+FROM debian:bookworm-slim
 
 # Configure DikuMUD installation variables.
 ENV VME_ROOT=/vme
 
-# Install required packages and libraries for the DikuMUD server.
-RUN apk upgrade && \
-    apk add boost-dev libressl-dev inetutils-telnet gcompat bison flex rapidjson-dev
+RUN apt-get update && \
+    apt-get -y upgrade
 
 WORKDIR $VME_ROOT
 
@@ -28,10 +27,11 @@ RUN mkdir -p $VME_ROOT/data/players
 RUN mkdir -p $VME_ROOT/log
 
 # Make sure our entrypoint is executable.
-RUN chmod 755 bin/entrypoint.sh
+RUN chmod 755 $VME_ROOT/bin/entrypoint.sh
 
 # Clean up the container.
-RUN apk cache clean
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 EXPOSE 4242/tcp
 CMD ["./bin/entrypoint.sh"]

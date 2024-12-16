@@ -1,13 +1,10 @@
-FROM ubuntu:24.04
+FROM debian:bookworm
 
 # Configure DikuMUD installation variables.
 ENV VME_ROOT=/vme
 
 RUN apt-get update && \
     apt-get -y upgrade
-
-# Install required packages and libraries for the DikuMUD server.
-RUN apt-get install -y bison flex libboost-all-dev libssl-dev rapidjson-dev
 
 # The following packages are included specifically for testing:
 RUN apt-get install -y inetutils-telnet less vim curl wget
@@ -33,7 +30,7 @@ RUN mkdir -p $VME_ROOT/data/players
 RUN mkdir -p $VME_ROOT/log
 
 # Make sure our entrypoint is executable.
-RUN chmod 755 bin/entrypoint.sh
+RUN chmod 755 $VME_ROOT/bin/entrypoint.sh
 
 # Clean up the container.
 RUN apt-get clean && \
