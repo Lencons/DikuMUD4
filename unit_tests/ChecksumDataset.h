@@ -65,7 +65,7 @@ public:
     /**
      * Removes the project path and the relative path from a filename
      * eg.
-     * "/home/user/code/DikuMUD3/vme/zone/udgaard.zon"
+     * "/home/user/code/DikuMUD3/vme/zones/udgaard.zon"
      * becomes
      * "udgaard.zon"
      * @param filename Filename to shorten

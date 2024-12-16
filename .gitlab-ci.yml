@@ -21,38 +21,23 @@ variables:
 # Build the whole system and store what we need as artifacts for future
 # jobs.
 #
-# Note:
-#   This has been tagged to the Debian runner as is has 16 vCPU's and we
-#   can easilly run this with 12 threads.
 Compile:
   stage: Build
   tags:
     - Debian
   script:
-    - cmake .
+    - cmake -DDIKU_STATIC=1 .
     - make all -j12
 
   artifacts:
     paths:
-      - docs/*
-      - vme/bin/vme
-      - vme/bin/mplex
-      - vme/zone/*.data
-      - vme/zone/*.reset
-
-#unit-test-job:   # This job runs in the test stage.
-#  stage: Test    # It only starts when the job in the build stage completes successfully.
-#  script:
-#    - echo "Running unit tests... This will take about 60 seconds."
-#    - sleep 60
-#    - echo "Code coverage is 90%"
-
-#lint-test-job:   # This job also runs in the test stage.
-#  stage: Test    # It can run at the same time as unit-test-job (in parallel).
-#  script:
-#    - echo "Linting code... This will take about 10 seconds."
-#    - sleep 10
-#    - echo "No lint issues found."
+      - docs/
+      - vme/bin/
+      - vme/etc/
+      - vme/include/
+      - vme/lib/
+      - vme/zones/*.zon
+      - vme/www/
 
 
 ##
@@ -60,7 +45,20 @@ Compile:
 ##
 
 
-DikuMUD:
+#
+# Image Build Template.
+#
+# Job template to build the Docker containers from the project Dockerfiles
+# and push them into the container repository.
+#
+# The following variables need to be set for this template to operate:
+#
+#   BUILD_TAG     THe digest tag to add to the image.
+#                   Generally this will be Commit SHA ($CI_COMMIT_SHA)
+#   DOCKER_ARGS   Any arguments that need to be passed to the Docker build
+#                 process.
+#
+.build_image:
   stage: Package
   tags:
     - Docker
@@ -81,11 +79,26 @@ DikuMUD:
       --label "org.opencontainers.image.title=$CI_PROJECT_TITLE"
       --label "org.opencontainers.image.url=$CI_PROJECT_URL"
       --label "org.opencontainers.image.created=$CI_JOB_STARTED_AT"
-      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.revision=$BUILD_TAG"
       --label "org.opencontainers.image.version=$CI_COMMIT_REF_NAME"
-      --tag $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+      --tag $DOCKER_BUILD_IMAGE:$BUILD_TAG
+      $DOCKER_ARGS
       .
-    - docker push $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
+    - docker push $DOCKER_BUILD_IMAGE:$BUILD_TAG
+
+
+DikuMUD:
+  extends: .build_image
+  variables:
+    BUILD_TAG: '$CI_COMMIT_SHA'
+    DOCKER_ARGS: ""
+
+
+DikuMUD-Test:
+  extends: .build_image
+  variables:
+    BUILD_TAG: '${CI_COMMIT_SHA}-test'
+    DOCKER_ARGS: '-f Dockerfile.test'
 
 
 pages:
@@ -120,7 +133,6 @@ pages:
 #   DOCKER_IMAGE_NAME     The name of the image to be released.
 #   RELEASE_TAG           The digets tag to apply to the released image.
 #
-#
 .release_image:
   stage: Release
   tags:
@@ -132,8 +144,8 @@ pages:
     # docker wants the password to be passed via stdin for security
     - echo -n $CI_REGISTRY_PASSWORD | docker login -u $CI_REGISTRY_USER --password-stdin $CI_REGISTRY
   script:
-    - docker pull $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA
-    - docker tag $DOCKER_BUILD_IMAGE:$CI_COMMIT_SHA $DOCKER_BUILD_IMAGE:$RELEASE_TAG
+    - docker pull $DOCKER_BUILD_IMAGE:$BUILD_TAG
+    - docker tag $DOCKER_BUILD_IMAGE:$BUILD_TAG $DOCKER_BUILD_IMAGE:$RELEASE_TAG
     - docker push $DOCKER_BUILD_IMAGE:$RELEASE_TAG
 
 
@@ -146,7 +158,21 @@ DikuMUD-latest:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   variables:
-    RELEASE_TAG: "latest"
+    BUILD_TAG: '$CI_COMMIT_SHA'
+    RELEASE_TAG: 'latest'
+
+
+# Release: Latest Test Image
+#
+# Any commits to the "test" branch in the project will be released as the
+# "test" image.
+DikuMUD-test:
+  extends: .release_image
+  rules:
+    - if: $CI_COMMIT_BRANCH == "test"
+  variables:
+    BUILD_TAG: '${CI_COMMIT_SHA}-test'
+    RELEASE_TAG: 'test'
 
 
 # Release: Release Tag
@@ -159,4 +185,5 @@ DikuMUD-tag:
   only:
     - tags
   variables:
-    RELEASE_TAG: $CI_COMMIT_REF_NAME
+    BUILD_TAG: '$CI_COMMIT_SHA'
+    RELEASE_TAG: '$CI_COMMIT_REF_NAME'
