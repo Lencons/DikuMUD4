@@ -1,4 +1,4 @@
-FROM debian:bookworm-slim
+FROM debian:bookworm
 
 # Configure DikuMUD installation variables.
 ENV VME_ROOT=/vme
