@@ -34,4 +34,4 @@ RUN chmod 755 bin/entrypoint.sh
 RUN apk cache clean
 
 EXPOSE 4242/tcp
-CMD ["/bin/entrypoint.sh"]
+CMD ["./bin/entrypoint.sh"]
