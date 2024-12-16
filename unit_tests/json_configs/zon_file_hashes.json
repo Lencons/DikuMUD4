@@ -1,6 +1,6 @@
 {
-    "name": "zone Directory Files",
-    "relative_path": "vme/zone/",
+    "name": "Zone Directory Files",
+    "relative_path": "vme/zones/",
     "new_file_check": {
         "source_extension": ".zon",
         "files_to_skip": [],
@@ -748,16 +748,16 @@
         },
         {
             "source_file": {
-                "filename": "ratswarf.zon",
+                "filename": "ratswharf.zon",
                 "sha512": "ae8dd967383c507e2124d4b7358c2a7dce72c5d84611217733e43932a185bf52eb1c5afc53b5d61a1e38dd75f72e3564215ddada8b02946edeb0b7428cf7fa01"
             },
             "output": [
                 {
-                    "filename": "ratswarf.data",
+                    "filename": "ratswharf.data",
                     "sha512": "9805c3ae3da3708ee4a0c6350611f1e1a3fe7d7208db7df1e03811993c2f3c51cdd5e8c9bdedd0fde6e2d98a1bff1ab562ec3dfe6708712ae0c4909e55f00183"
                 },
                 {
-                    "filename": "ratswarf.reset",
+                    "filename": "ratswharf.reset",
                     "sha512": "530fab0d349a73aae9be29855ab8393b353dfe1bfa73f9ae800f72a35dc8853bf3567d456b7d846f2e5295d4fda2fdd463372ba5ed4915661d4cfc85a4029f26"
                 }
             ]
@@ -765,12 +765,12 @@
         {
             "source_file": {
                 "filename": "rebirth.zon",
-                "sha512": "5afcddaf59ce07e11ecc0034068c73c8e5d5f58bee51c7af0d822ac0f12680fc572a4d08404b673ebf6b1f88693b8d7c904c06c49c1afaa52b467524030673bd"
+                "sha512": "205ceb643e785ee8c1bdd7420f955359aa69282a84c852201220494a7bfc05f085c4c94388a5b888d0749fa996864835614c48ee7c37e33ebe6dc0cdb0051f19"
             },
             "output": [
                 {
                     "filename": "rebirth.data",
-                    "sha512": "4cd0dded693b8715b6045ef36dd7416c41fcecc69516db1871e24be0fec5d46cf200bced20a8d99132097990eb753fd2fd69711016e2d4fd5a8f0b50d5c69c92"
+                    "sha512": "b1d5ae81c65b3d91d3e5a420875da74d9c4a98536a1634001d57c9c2bf40015e170728fe4223cc1add7340bb72ea76577762e9c102bda172816ec00a97644aa0"
                 },
                 {
                     "filename": "rebirth.reset",

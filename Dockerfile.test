@@ -1,11 +1,16 @@
-FROM alpine:3.20
+FROM ubuntu:24.04
 
 # Configure DikuMUD installation variables.
 ENV VME_ROOT=/vme
 
+RUN apt-get update && \
+    apt-get -y upgrade
+
 # Install required packages and libraries for the DikuMUD server.
-RUN apk upgrade && \
-    apk add boost-dev libressl-dev inetutils-telnet gcompat bison flex rapidjson-dev
+RUN apt-get install -y bison flex libboost-all-dev libssl-dev rapidjson-dev
+
+# The following packages are included specifically for testing:
+RUN apt-get install -y inetutils-telnet less vim curl wget
 
 WORKDIR $VME_ROOT
 
@@ -31,7 +36,8 @@ RUN mkdir -p $VME_ROOT/log
 RUN chmod 755 bin/entrypoint.sh
 
 # Clean up the container.
-RUN apk cache clean
+RUN apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 EXPOSE 4242/tcp
-CMD ["/bin/entrypoint.sh"]
+CMD ["./bin/entrypoint.sh"]
