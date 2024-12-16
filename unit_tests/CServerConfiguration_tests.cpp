@@ -385,10 +385,10 @@ compress_extention = .gz
 vmehome = /mnt/c/data/build/vme
 
 # Full path to the vme zone directory
-zonedir = /mnt/c/data/build/vme/zone
+zonedir = /mnt/c/data/build/vme/zones
 
 # Full path to the location that newly compiled zones wait for next reboot
-nextzon = /mnt/c/data/build/vme/zone/nxtzon
+nextzon = /mnt/c/data/build/vme/zones/nxtzon
 
 #############################
 #  External program control
