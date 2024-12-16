@@ -25,7 +25,7 @@ spec:
     spec:
       containers:
         - name: dikumud
-          image: registry.core.dunbart.net/mud/dikumud3/dikumud:0.1
+          image: registry.core.dunbart.net/mud/dikumud3/dikumud:1.0.0
           ports:
             - name: telnet
               containerPort: 4242
