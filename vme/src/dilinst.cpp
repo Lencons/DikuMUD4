@@ -48,6 +48,7 @@
 #include "utils.h"
 #include "vmelimits.h"
 #include "zon_basis.h"
+#include "zone_reset.h"
 
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -407,6 +408,29 @@ void dilfi_delpc(dilprg *p)
     }
     delete v1;
 }
+
+
+void dilfi_zonereset(dilprg *p)
+{
+    dilval *v1 = p->stack.pop();
+
+    if (dil_type_check("zonereset", p, 1, v1, TYPEFAIL_NULL, 1, DILV_ZP))
+    {
+        dil_getval(v1);
+        if (v1->val.ptr == NULL)
+        {
+           szonelog(p->frame->tmpl->zone, "DIL '%s' tried to call zonereset() with a null pointer.", p->frame->tmpl->prgname);
+        }
+        else
+        {
+           szonelog(p->frame->tmpl->zone, "DIL '%s' programatically resetting zone %s.", p->frame->tmpl->prgname, ((zone_type *) v1->val.ptr)->getName());
+           zone_reset((zone_type *) v1->val.ptr);
+        }
+    }
+
+    delete v1;
+}
+
 
 void dilfi_reboot(dilprg *p)
 {
@@ -2554,7 +2578,7 @@ void dilfi_act(dilprg *p)
                 /* these require 1st argument */
                 if (v3->val.ptr)
                 {
-                    act((char *)v1->val.ptr, v2->val.num, v3, v4, v5, v6->val.num);
+                    act((char *)v1->val.ptr, ActShow(v2->val.num), v3, v4, v5, ActType(v6->val.num));
                 }
                 break;
 
@@ -2562,7 +2586,7 @@ void dilfi_act(dilprg *p)
             case TO_NOTVICT:
                 if (v5->val.ptr)
                 {
-                    act((char *)v1->val.ptr, v2->val.num, v3, v4, v5, v6->val.num);
+                    act((char *)v1->val.ptr, ActShow(v2->val.num), v3, v4, v5, ActType(v6->val.num));
                 }
         }
     }

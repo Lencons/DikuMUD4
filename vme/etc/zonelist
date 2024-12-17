@@ -8,7 +8,7 @@ basemove 1120tw0008      1 1 0 0
 wiz 1120tw0008           1 0 250 0
 baselook 1120tw0008      1 1 0 0
 update 1120tw0008        1 0 250 0
-help 1120tw0008          1 0 250 0 ../etc/help
+helpzon 1120tw0008          1 0 250 0 ../etc/help
 boards 1120tw0008        1 0 250 0 ../lib/boards
 comm 1120tw0008          1 0 250 0
 socials 1120tw0008       1 0 250 0
@@ -23,11 +23,12 @@ professions release      1 0 250 0
 #
 justice 1120tw0008       1 0 250 0
 arena 1120tw0008         1 0 250 0
-clan 1120tw0008          1 0 250 0 ../lib/clan
+clans 1120tw0008          1 0 250 0 ../lib/clan
 competition 1120tw0008   1 0 250 0 ../lib/competition
 holiday20 release        1 0 220 0 
 holiday21 release        1 0 220 0 
-guild_quest release      1 255 254 0 
+holiday22 release        1 0 220 0 
+g_q release      1 255 254 0 
 #
 bounty release           1 250 0 0
 udgaard 1120tw0008       1 0 250 0
@@ -49,8 +50,8 @@ assassin 1120tw0008      1 2 0 0
 knight   1120tw0008      1 2 0 0
 cypress 1120tw0008       1 3 0 0
 youth 1120tw0008       1 3 0 0
-haon-dor 1120tw0008      1 3 0 0
-midsewer 1120tw0008      1 1 0 0
+haon_dor 1120tw0008      1 3 0 0
+midsewers 1120tw0008      1 1 0 0
 midwalls 1120tw0008      1 1 0 0
 hamlet 1120tw0008        1 1 0 0
 galgachus 1120tw0008     1 255 0 0
@@ -73,7 +74,7 @@ trees 1120tw0008         1 255 0 0
 darkravine thrtn         1 255 0 0 
 darkhollow thrtn         1 255 0 0 
 druid 1120tw0008         1 255 0 0 
-sand 1120tw0008          1 255 0 0 
+sandzone 1120tw0008          1 255 0 0 
 sands2 1120tw0008        1 255 0 0 
 neptune 1120tw0008       1 255 0 0 
 hobgob 1120tw0008        1 255 0 0 
@@ -94,7 +95,7 @@ valley4 1120tw0008       1 255 0 0
 kingc 1120tw0008         1 255 0 0
 elfdom 1120tw0008        1 255 0 0
 goblin_cave 1120tw0008   1 255 0 0
-hill 1120tw0008          1 255 0 0
+hills 1120tw0008          1 255 0 0
 moor 1120tw0008          1 255 0 0                 
 ratswarf 1120tw0008      1 255 0 0                 
 gnome 1120tw0008         1 255 0 0                 
@@ -128,9 +129,9 @@ darkelf 1120tw0008       1 255 0 2
 arabian 1120tw0008       1 255 0 2  
 asgaard 1120tw0008       1 255 0 2  
 dwarves 1120tw0008       1 255 0 2  
-oxiyang 1120tw0008       1 255 0 0  
-tobas_manse 1120tw0008   1 255 0 0
-lost 1120tw0008          1 255 0 2     
+outxiyang 1120tw0008       1 255 0 0  
+manse 1120tw0008   1 255 0 0
+lostlands 1120tw0008          1 255 0 2     
 ww1 1120tw0008           1 255 0 2     
 ww2 1120tw0008           1 255 0 2     
 volcano 1120tw0008       1 255 0 2     
@@ -149,14 +150,14 @@ xiyang2 1120tw0008       1 255 0 0
 akaren 1120tw0008        1 255 0 0     
 reslab 1120tw0008        1 255 0 2     
 cloud 1120tw0008         1 255 0 2     
-chess1 1120tw0008        1 255 0 0     
-chess2 1120tw0008        1 255 254 0   
-chess4 1120tw0008        1 255 0 0     
-chess3 1120tw0008        1 255 0 0     
+forest 1120tw0008        1 255 0 0     
+blcastle 1120tw0008        1 255 254 0   
+fields 1120tw0008        1 255 0 0     
+wcastle 1120tw0008        1 255 0 0     
 rotten 1120tw0008        1 255 0 2     
 warntz 1120tw0008        1 255 0 2     
-demon 1120tw0008         1 255 0 2     
-daemon 1120tw0008        1 255 0 2     
+demon_realm 1120tw0008         1 255 0 2     
+ishlor 1120tw0008        1 255 0 2     
 academy 1120tw0008       1 255 0 0     
 haunted 1120tw0008       1 255 0 0     
 night 1120tw0008         1 255 0 0     
@@ -173,11 +174,11 @@ clan_aoh 1120tw0008      1 255 0 0
 clan_uch 1120tw0008      1 255 0 0
 clan_koh 1120tw0008      1 255 0 0 
 vendetta 1120tw0008      1 255 0 0     
-kaio 1120tw0008          1 255 254 0   
+kaiohome 1120tw0008          1 255 254 0   
 rebirth 1120tw0008       1 0 250 0     
 guild_paths 1120tw0008   1 0 250 0
 vasklor 1120tw0008       1 1 0 0
-nether 1120tw0008        1 255 0 0
+nether_realm 1120tw0008        1 255 0 0
 vasklor1 1120tw0008      1 1 0 0
 troi 1120tw0008          1 1 0 0
 albula 1120tw0008       1 1 0 0      
@@ -194,7 +195,7 @@ skavship 1120tw0008      1 0 250 0
 dracship 1120tw0008      1 0 250 0 
 serpship 1120tw0008      1 0 250 0 
 arctship 1120tw0008      1 0 250 0 
-drasil  1120tw0008       1 1 0 0   
+yggdrasil  1120tw0008       1 1 0 0   
 fthieves 1120tw0008      1 255 0 2 
 bazaar   1120tw0008      1 255 0 0 
 wallace  1120tw0008      1 1 0 0   
@@ -240,4 +241,5 @@ duinveld  sandman         1 255 0 2
 barbarian release 1 2 0 0 
 gremlin   release 1 2 0 0 
 randomt   release 1 0 250 0
+hallows23 d15turb3d      1 1 0 0
 

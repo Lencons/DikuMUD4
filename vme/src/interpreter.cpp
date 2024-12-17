@@ -208,8 +208,8 @@ static void dump_command_history(void)
         slog(LOG_ALL,
              0,
              "CMD %s@%s [%s]",
-             command_history_data[i].pcname ? command_history_data[i].pcname : command_history_data[i].fi->getName(),
-             command_history_data[i].pcname ? "" : command_history_data[i].fi->getZone()->getName(),
+             command_history_data[i].pcname[0] ? command_history_data[i].pcname : command_history_data[i].fi->getName(),
+             command_history_data[i].pcname[0] ? "" : command_history_data[i].fi->getZone()->getName(),
              command_history_data[i].str);
         i = (i + 1) % MAX_DEBUG_HISTORY;
     }
@@ -382,7 +382,7 @@ void command_interpreter(unit_data *ch, const char *cmdArg)
 
         if (send_preprocess(ch, &the_cmd, argstr) == SFR_SHARE)
         {
-            act("$2t is not a known command.", A_ALWAYS, ch, cmd, cActParameter(), TO_CHAR);
+            act("$2t is not a known command.", eA_ALWAYS, ch, cmd, cActParameter(), eTO_CHAR);
         }
 
         if (the_cmd.cmd_str)

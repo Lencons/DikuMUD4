@@ -37,7 +37,7 @@ static void show_items(unit_data *ch, unit_data *item, ubit32 price)
     {
         price = money_round_up(price, local_currency(ch), 2);
 
-        act("$2t for $3n", A_ALWAYS, ch, money_string(price, local_currency(ch), FALSE), item, TO_CHAR);
+        act("$2t for $3n", eA_ALWAYS, ch, money_string(price, local_currency(ch), FALSE), item, eTO_CHAR);
         rent_info = TRUE;
     }
 }
@@ -50,7 +50,7 @@ static void subtract_rent(unit_data *ch, unit_data *item, ubit32 price)
     {
         if (!char_can_afford(ch, price, DEF_CURRENCY))
         {
-            act("You couldn't afford to keep $2n.", A_ALWAYS, ch, item, cActParameter(), TO_CHAR);
+            act("You couldn't afford to keep $2n.", eA_ALWAYS, ch, item, cActParameter(), eTO_CHAR);
             extract_unit(item);
         }
         else
@@ -151,11 +151,11 @@ void do_rent(unit_data *ch, char *arg, const command_info *cmd)
     else
     {
         act("Your inventory costs $2t per day to rent.",
-            A_ALWAYS,
+            eA_ALWAYS,
             ch,
             money_string(sum, local_currency(ch), FALSE),
             cActParameter(),
-            TO_CHAR);
+            eTO_CHAR);
     }
 }
 
@@ -554,7 +554,7 @@ unit_data *base_load_contents(const char *pFileName, const unit_data *unit)
 
                 if (pnew->getFileIndex() == nullptr)
                 {
-                    pnew->set_fi(g_slime_fi);
+                    pnew->setFileIndex(g_slime_fi);
                 }
             }
             else
@@ -566,7 +566,7 @@ unit_data *base_load_contents(const char *pFileName, const unit_data *unit)
                     slog(LOG_ALL, 0, "Inventory UNIT corrupt!");
                     break;
                 }
-                pnew->set_fi(fi);
+                pnew->setFileIndex(fi);
                 insert_in_unit_list(pnew);
             }
 
@@ -620,7 +620,10 @@ unit_data *base_load_contents(const char *pFileName, const unit_data *unit)
             /* IS_CHAR() needed, since a potential char may have been slimed! */
             if (hn.equip && equip_ok && pnew->getUnitIn()->isChar())
             {
-                equip_char(pnew->getUnitIn(), pnew, hn.equip);
+                if (!equipment(pnew->getUnitIn(), hn.equip)) // Saw a crash bug 2023-04-10. Suspect old prg33@hades DIL equipping
+                {
+                    equip_char(pnew->getUnitIn(), pnew, hn.equip);
+                }
             }
 
             pstack[frame] = pnew;

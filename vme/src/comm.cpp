@@ -22,6 +22,36 @@
 #include <cctype>
 #include <cstring>
 
+actType_e ActType(int n)
+{
+    if ((n >= actType_e::eTO_ROOM) && (n <= actType_e::eTO_REST))
+    {
+        return (actType_e) n;
+    }
+    else
+    {
+        slog(LOG_ALL, 0, "actType_e conversion OOB integer %d", n);
+        return actType_e::eTO_ALL;
+    }
+}
+
+
+actShow_e ActShow(int n)
+{
+    if ((n >= actShow_e::eA_HIDEINV) && (n <= actShow_e::eA_RAW))
+    {
+        return (actShow_e) n;
+    }
+    else
+    {
+        slog(LOG_ALL, 0, "actShow_e conversion OOB integer %d", n);
+        return actShow_e::eA_ALWAYS;
+    }
+}
+
+
+
+
 cActParameter::cActParameter()
 {
     m_u = nullptr;
@@ -290,11 +320,11 @@ void send_to_outdoor(const char *messg)
 // append a <br/> and sact() should never add a <br/>. buf = dest
 void act_generate(char *buf,
                   const char *str,
-                  int show_type,
+                  actShow_e show_type,
                   cActParameter arg1,
                   cActParameter arg2,
                   cActParameter arg3,
-                  int type,
+                  actType_e type,
                   const unit_data *to,
                   int bNewline)
 {
@@ -336,9 +366,12 @@ void act_generate(char *buf,
         return;
     }
 
-    if ((show_type == A_HIDEINV && !CHAR_CAN_SEE(to, arg1.m_u)) || (show_type != A_ALWAYS && !CHAR_AWAKE(to)))
+    if (show_type != eA_RAW)
     {
-        return;
+        if ((show_type == actShow_e::eA_HIDEINV && !CHAR_CAN_SEE(to, arg1.m_u)) || (show_type != actShow_e::eA_ALWAYS && !CHAR_AWAKE(to)))
+        {
+            return;
+        }
     }
 
     for (strp = str, point = buf;;)
@@ -373,7 +406,7 @@ void act_generate(char *buf,
                     case 'n':
                         if (sub->m_u != nullptr)
                         {
-                            if (CHAR_CAN_SEE(to, sub->m_u))
+                            if (CHAR_CAN_SEE(to, sub->m_u) || show_type == eA_RAW)
                             {
                                 if (sub->m_u->isPC())
                                 {
@@ -399,7 +432,10 @@ void act_generate(char *buf,
                     case 'N':
                         if (sub->m_u != nullptr)
                         {
-                            i = UNIT_SEE_NAME(to, (unit_data *)sub->m_u);
+                            if (show_type == eA_RAW)
+                                i = ((unit_data *)sub->m_u)->getNames().Name();
+                            else
+                                i = UNIT_SEE_NAME(to, (unit_data *)sub->m_u);
                         }
                         else
                         {
@@ -554,12 +590,9 @@ void act_generate(char *buf,
 /// because of variance with each target's ability to e.g. see.
 /// Is there a need for sactother which takes a "to" argument? If we add
 /// to argument here it will be confusing for TO_VICT and TO_CHAR scenarios.
-void sact(char *buf, const char *str, int show_type, cActParameter arg1, cActParameter arg2, cActParameter arg3, int type)
+void sact(char *buf, const char *str, actShow_e show_type, cActParameter arg1, cActParameter arg2, cActParameter arg3, actType_e type)
 {
     const unit_data *to = nullptr;
-
-    /* This to catch old-style FALSE/TRUE calls...  */
-    assert(show_type == A_SOMEONE || show_type == A_HIDEINV || show_type == A_ALWAYS);
 
     if (!str || !*str)
     {
@@ -588,14 +621,11 @@ void sact(char *buf, const char *str, int show_type, cActParameter arg1, cActPar
 }
 
 /// @note Always adds <br/> at the end
-void act(const char *str, int show_type, cActParameter arg1, cActParameter arg2, cActParameter arg3, int type)
+void act(const char *str, actShow_e show_type, cActParameter arg1, cActParameter arg2, cActParameter arg3, actType_e type)
 {
     const unit_data *to = nullptr;
     const unit_data *u = nullptr;
     char buf[MAX_STRING_LENGTH];
-
-    /* This to catch old-style FALSE/TRUE calls...  */
-    assert(show_type == A_SOMEONE || show_type == A_HIDEINV || show_type == A_ALWAYS);
 
     if (!str || !*str)
     {
@@ -671,7 +701,7 @@ void act(const char *str, int show_type, cActParameter arg1, cActParameter arg2,
     }
 }
 
-void cact(const char *str, int show_type, cActParameter arg1, cActParameter arg2, cActParameter arg3, int type, const char *colortype)
+void cact(const char *str, actShow_e show_type, cActParameter arg1, cActParameter arg2, cActParameter arg3, actType_e type, const char *colortype)
 {
     const unit_data *to = nullptr;
     const unit_data *u = nullptr;
@@ -679,8 +709,6 @@ void cact(const char *str, int show_type, cActParameter arg1, cActParameter arg2
     char temp[MAX_STRING_LENGTH];
     char *t = nullptr;
     char *b = buf;
-    /* This to catch old-style FALSE/TRUE calls...  */
-    assert(show_type == A_SOMEONE || show_type == A_HIDEINV || show_type == A_ALWAYS);
 
     if (!str || !*str)
     {

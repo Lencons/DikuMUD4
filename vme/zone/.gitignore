@@ -1,0 +1,6 @@
+*.data
+*.dh
+*.dot
+*.err
+*.reset
+*.json

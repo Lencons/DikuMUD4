@@ -1636,23 +1636,8 @@ command        = kick
 minpos         = POSITION_FIGHTING
 turns          = PULSE_VIOLENCE/2
 func           = kick@skills
-type           = TYPE_SKILL
-//_CUTBEGIN kick
-profession fighter = 0
-profession knight = -1
-profession paladin = -2
-profession ranger = -2
-profession thief = 2
-profession assassin = 0
-profession priest = -7
-profession druid = -7
-profession obsolete = -7
-profession necromancer = -7
-profession mage = -7
-profession sorcerer = -7
-profession barbarian = 0
-race groll = 1
-//_CUTEND kick
+type           = 0 // TYPE_SKILL
+
 
 /* - - - - Yet another definition of a skill - - - - */
 
@@ -1662,23 +1647,7 @@ command        = elbow
 minpos         = POSITION_FIGHTING
 turns          = PULSE_VIOLENCE/2
 func           = elbow@skills
-type = TYPE_SKILL
-//_CUTBEGIN elbow
-profession fighter = 0
-profession knight = -1
-profession paladin = -2
-profession ranger = -2
-profession thief = 3
-profession assassin = 3
-profession priest = -7
-profession druid = -7
-profession obsolete = -7
-profession necromancer = -7
-profession mage = -7
-profession sorcerer = -7
-profession barbarian = -1
-race groll = 1
-//_CUTEND elbow
+type           = 0 // TYPE_SKILL
 
 /* - - - - Yet another definition of a skill - - - - */
 
@@ -1688,23 +1657,7 @@ command        = knee
 minpos         = POSITION_FIGHTING
 turns          = PULSE_VIOLENCE/2
 func           = knee@skills
-type = TYPE_SKILL
-//_CUTBEGIN knee
-profession fighter = 0
-profession knight = -1
-profession paladin = -2
-profession ranger = -2
-profession thief = 3
-profession assassin = 3
-profession priest = -7
-profession druid = -7
-profession obsolete = -7
-profession necromancer = -7
-profession mage = -7
-profession sorcerer = -7
-profession barbarian = -1
-race groll = 1
-//_CUTEND knee
+type           = 0 // TYPE_SKILL
 
 /* - - - - Yet another definition of a skill - - - - */
 
@@ -1714,23 +1667,7 @@ command        = hit
 minpos         = POSITION_FIGHTING
 turns          = PULSE_VIOLENCE/2
 func           = punch@skills
-type = TYPE_SKILL
-//_CUTBEGIN hit
-profession fighter = -7
-profession knight = -7
-profession paladin = -7
-profession ranger = -7
-profession thief = -7
-profession assassin = -7
-profession priest = -7
-profession druid = -7
-profession obsolete = -7
-profession necromancer = -7
-profession mage = -7
-profession sorcerer = -7
-profession barbarian = 2
-race groll = 1
-//_CUTEND hit
+type           = 0 // TYPE_SKILL
 
 
 /* - - - - Yet another definition of a skill - - - - */
@@ -1741,23 +1678,7 @@ command        = punch
 minpos         = POSITION_FIGHTING
 turns          = PULSE_VIOLENCE/2
 func           = punch@skills
-type = TYPE_SKILL
-//_CUTBEGIN punch
-profession fighter = -7
-profession knight = -7
-profession paladin = -7
-profession ranger = -7
-profession thief = -7
-profession assassin = -7
-profession priest = -7
-profession druid = -7
-profession obsolete = -7
-profession necromancer = -7
-profession mage = -7
-profession sorcerer = -7
-profession barbarian = 2
-race groll = 1
-//_CUTEND punch
+type           = 0 // TYPE_SKILL
 
 /* - - - - Yet another definition of a skill - - - - */
 
@@ -3112,7 +3033,7 @@ loglevel = 240
 type     = 0
 
 command  = reset
-internal = reset
+func     = cmd_reset@commands
 minpos   = POSITION_RESTING
 minlevel = 230
 loglevel = 230
@@ -3225,6 +3146,13 @@ type     = 0
 
 command  = wstat
 internal = wstat
+minpos   = POSITION_DEAD
+minlevel = 215
+loglevel = 215
+type     = 0
+
+command  = jstat
+internal = jstat
 minpos   = POSITION_DEAD
 minlevel = 215
 loglevel = 215

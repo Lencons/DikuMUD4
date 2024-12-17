@@ -4,12 +4,12 @@
  $Date: 2001/04/29 03:46:05 $
  $Revision: 2.1 $
  */
-
 #include "comm.h"
 #include "experience.h"
 #include "fight.h"
 #include "formatter.h"
 #include "interpreter.h"
+#include "json_helper.h"
 #include "modify.h"
 #include "skills.h"
 #include "slog.h"
@@ -543,6 +543,29 @@ void cCombat::status(const unit_data *god)
     send_to_char(msg, god);
 }
 
+void cCombat::toJSON(rapidjson::PrettyWriter<rapidjson::StringBuffer> &writer) const
+{
+    writer.StartObject();
+    {
+        json::write_kvp("AttackNo", nAttackNo, writer);
+        json::write_kvp("When", nWhen, writer);
+        json::write_unit_id_kvp("Owner", pOwner, writer);
+        json::write_unit_id_kvp("Melee", pMelee, writer);
+        json::write_kvp("NoOpponents", nNoOpponents, writer);
+
+        writer.String("Opponents");
+        writer.StartArray();
+        for (int i = 0; i < nNoOpponents; ++i)
+        {
+            json::write_unit_id(pOpponents[i], writer);
+        }
+        writer.EndArray();
+
+        json::write_kvp("cmd", cmd, writer);
+    }
+    writer.EndObject();
+}
+
 /* ======================================================================= */
 /*                                                                         */
 /*                         Utility Routines                                */
@@ -632,7 +655,7 @@ void stat_combat(unit_data *god, unit_data *u, const char *pStr)
 
     if (!u->isChar())
     {
-        act("$2n is not a pc / npc.", A_ALWAYS, god, u, cActParameter(), TO_CHAR);
+        act("$2n is not a pc / npc.", eA_ALWAYS, god, u, cActParameter(), eTO_CHAR);
         return;
     }
 
@@ -655,7 +678,7 @@ void stat_combat(unit_data *god, unit_data *u, const char *pStr)
 
     if (!u2->isChar())
     {
-        act("$2n is not a pc / npc.", A_ALWAYS, god, u2, cActParameter(), TO_CHAR);
+        act("$2n is not a pc / npc.", eA_ALWAYS, god, u2, cActParameter(), eTO_CHAR);
         return;
     }
 
@@ -663,7 +686,7 @@ void stat_combat(unit_data *god, unit_data *u, const char *pStr)
 
     if (!CHAR_COMBAT(u))
     {
-        act("No combat structure on '$2n'", A_ALWAYS, god, u, cActParameter(), TO_CHAR);
+        act("No combat structure on '$2n'", eA_ALWAYS, god, u, cActParameter(), eTO_CHAR);
     }
     else
     {
@@ -683,7 +706,7 @@ void stat_spell(unit_data *god, unit_data *u, const char *pStr)
 
     if (!u->isChar())
     {
-        act("$2n is not a pc / npc.", A_ALWAYS, god, u, cActParameter(), TO_CHAR);
+        act("$2n is not a pc / npc.", eA_ALWAYS, god, u, cActParameter(), eTO_CHAR);
         return;
     }
 
@@ -706,7 +729,7 @@ void stat_spell(unit_data *god, unit_data *u, const char *pStr)
 
     if (!u2->isChar())
     {
-        act("$2n is not a pc / npc.", A_ALWAYS, god, u2, cActParameter(), TO_CHAR);
+        act("$2n is not a pc / npc.", eA_ALWAYS, god, u2, cActParameter(), eTO_CHAR);
         return;
     }
 
@@ -714,7 +737,7 @@ void stat_spell(unit_data *god, unit_data *u, const char *pStr)
 
     if (!CHAR_COMBAT(u))
     {
-        act("No combat structure on '$2n'", A_ALWAYS, god, u, cActParameter(), TO_CHAR);
+        act("No combat structure on '$2n'", eA_ALWAYS, god, u, cActParameter(), eTO_CHAR);
     }
     else
     {

@@ -14,7 +14,7 @@ public:
      * @name Constructors / Destructor
      * @{
      */
-    obj_data();                                     ///< Constructor
+    obj_data(file_index_type *fi);                  ///< Constructor
     obj_data(const obj_data &) = delete;            ///< Delete copy constructor
     obj_data(obj_data &&) = delete;                 ///< Delete move constructor
     obj_data &operator=(const obj_data &) = delete; ///< Delete assignment operator
@@ -190,6 +190,9 @@ public:
      */
     void setMagicResistance(ubit8 value);
     /// @}
+
+    virtual void toJSON(rapidjson::PrettyWriter<rapidjson::StringBuffer> &writer) const;
+
 private:
     std::array<sbit32, 5> m_value{0}; ///< Values of the item (see list)
     ubit32 m_cost{0};                 ///< Value when sold (gp.)

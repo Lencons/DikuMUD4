@@ -9,6 +9,7 @@
 #include "files.h"
 #include "formatter.h"
 #include "handler.h"
+#include "json_helper.h"
 #include "main_functions.h"
 #include "nanny.h"
 #include "pcsave.h"
@@ -20,8 +21,8 @@
 
 size_t pc_data::g_world_nopc = 0; // number of chars in the world
 
-pc_data::pc_data()
-    : char_data(UNIT_ST_PC)
+pc_data::pc_data(file_index_type *fi)
+    : char_data(UNIT_ST_PC, fi)
     , m_setup{0, 0, 0, 0, 0, 0, 0, 0}
     , m_guild{nullptr}
     , m_bank{nullptr}
@@ -178,7 +179,7 @@ void pc_data::gstate_togame(dilprg *pdontstop)
             }
         }
 
-        act("$1n has arrived.", A_HIDEINV, cActParameter(this), cActParameter(), cActParameter(), TO_ROOM);
+        act("$1n has arrived.", eA_HIDEINV, cActParameter(this), cActParameter(), cActParameter(), eTO_ROOM);
     }
 
     /* New player stats. Level can be zero after reroll while ID is not. */
@@ -299,16 +300,16 @@ void pc_data::reconnect_game(descriptor_data *d)
     if (CHAR_LAST_ROOM(this) && (CHAR_LAST_ROOM(this) != getUnitIn()))
     {
         act("$1n has reconnected, and is moved to another location.",
-            A_HIDEINV,
+            eA_HIDEINV,
             cActParameter(this),
             cActParameter(),
             cActParameter(),
-            TO_ROOM);
+            eTO_ROOM);
         unit_from_unit(this);
         unit_to_unit(this, CHAR_LAST_ROOM(this));
         setLastLocation(nullptr);
     }
-    act("$1n has reconnected.", A_HIDEINV, cActParameter(this), cActParameter(), cActParameter(), TO_ROOM);
+    act("$1n has reconnected.", eA_HIDEINV, cActParameter(this), cActParameter(), cActParameter(), eTO_ROOM);
     slog(LOG_BRIEF, getLevelOfWizardInvisibility(), "%s[%s] has reconnected.", PC_FILENAME(this), CHAR_DESCRIPTOR(this)->getHostname());
     CHAR_DESCRIPTOR(this)->setLastLogonTime(::time(nullptr));
     m_time.setPlayerLastConnectTime(time(nullptr));
@@ -876,4 +877,114 @@ const color_type &pc_data::getColor() const
 color_type &pc_data::getColor()
 {
     return m_color;
+}
+
+void pc_data::toJSON(rapidjson::PrettyWriter<rapidjson::StringBuffer> &writer) const
+{
+    writer.StartObject();
+    {
+        json::write_unit_id_kvp("id", this, writer);
+
+        writer.String("npc_data");
+        writer.StartObject();
+        {
+            json::write_object_value_kvp("setup", m_setup, writer);
+            json::write_object_value_kvp("time", m_time, writer);
+            json::write_char_pointer_kvp("guild", m_guild, writer);
+            json::write_char_pointer_kvp("bank", m_bank, writer);
+            json::write_char_pointer_kvp("hometown", m_hometown, writer);
+            json::write_char_pointer_kvp("promptstr", m_promptstr, writer);
+            json::write_object_value_kvp("info", m_info, writer);
+            json::write_object_value_kvp("quest", m_quest, writer);
+            json::write_kvp("profession", m_profession, writer);
+            json::write_kvp("vlvl", m_vlvl, writer);
+            json::write_kvp("id", m_id, writer);
+            json::write_kvp("skill_points", m_skill_points, writer);
+            json::write_kvp("ability_points", m_ability_points, writer);
+            std::string bits;
+            json::write_kvp("flags", sprintbit(bits, m_flags, g_pc_flags), writer);
+            json::write_kvp("nr_of_crimes", m_nr_of_crimes, writer);
+            json::write_kvp("crack_attempts", m_crack_attempts, writer);
+            json::write_kvp("lifespan", m_lifespan, writer);
+
+            writer.String("spells");
+            writer.StartArray();
+            for (int i = 0; i < SPL_TREE_MAX; ++i)
+            {
+                writer.StartObject();
+                {
+                    json::write_kvp("spell", m_spells[i], writer);
+                    json::write_kvp("level", m_spell_lvl[i], writer);
+                }
+                writer.EndObject();
+            }
+            writer.EndArray();
+
+            writer.String("skills");
+            writer.StartArray();
+            for (int i = 0; i < SKI_TREE_MAX; ++i)
+            {
+                writer.StartObject();
+                {
+                    json::write_kvp("skill", m_skills[i], writer);
+                    json::write_kvp("level", m_skill_lvl[i], writer);
+                }
+                writer.EndObject();
+            }
+            writer.EndArray();
+
+            writer.String("weapons");
+            writer.StartArray();
+            for (int i = 0; i < WPN_TREE_MAX; ++i)
+            {
+                writer.StartObject();
+                {
+                    json::write_kvp("wepaon", m_weapons[i], writer);
+                    json::write_kvp("level", m_weapon_lvl[i], writer);
+                }
+                writer.EndObject();
+            }
+            writer.EndArray();
+
+            json::write_kvp("ability_lvl_MAG", m_ability_lvl[ABIL_MAG], writer);
+            json::write_kvp("ability_lvl_DIV", m_ability_lvl[ABIL_DIV], writer);
+            json::write_kvp("ability_lvl_STR", m_ability_lvl[ABIL_STR], writer);
+            json::write_kvp("ability_lvl_DEX", m_ability_lvl[ABIL_DEX], writer);
+            json::write_kvp("ability_lvl_CON", m_ability_lvl[ABIL_CON], writer);
+            json::write_kvp("ability_lvl_CHA", m_ability_lvl[ABIL_CHA], writer);
+            json::write_kvp("ability_lvl_BRA", m_ability_lvl[ABIL_BRA], writer);
+            json::write_kvp("ability_lvlHP", m_ability_lvl[ABIL_HP], writer);
+
+            writer.String("conditions");
+            writer.StartObject();
+            {
+                json::write_kvp("drunk", (bool)m_conditions[DRUNK], writer);
+                json::write_kvp("full", (bool)m_conditions[FULL], writer);
+                json::write_kvp("thirsty", (bool)m_conditions[THIRST], writer);
+            }
+            writer.EndObject();
+
+            json::write_kvp("AccessLevel", m_nAccessLevel, writer);
+            json::write_kvp("pwd", m_pwd, writer);
+            json::write_kvp("filename", m_filename, writer);
+
+            writer.String("lasthosts");
+            writer.StartArray();
+            for (int i = 0; i < 5; ++i)
+            {
+                in_addr in;
+                in.s_addr = m_lasthosts[i];
+                writer.String(inet_ntoa(in));
+            }
+            writer.EndArray();
+
+            writer.String("color");
+            m_color.toJSON(writer);
+        }
+        writer.EndObject();
+
+        writer.String("char_data");
+        char_data::toJSON(writer);
+    }
+    writer.EndObject();
 }

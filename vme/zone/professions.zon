@@ -1,0 +1,581 @@
+#include <macros.h>
+
+
+%zone professions
+
+reset RESET_NOT
+
+creators {"Papi"}
+
+notes "The DIL functions needed to manage Guilds."
+
+help 
+"This zone contains helper functions for professions.<br/>
+
+Professions are comparable to natural talents. The profession,
+not the guild, determine the training cost.<br/>
+So for example, a mage profession means you'll have a low cost
+training MAG and BRA. A fighter profession means you have a low
+cost training STR and CON. So while a player can join as many
+guilds as they like, it'll still be impossible or too expensive for
+a mage to practice fighter skills.<br/>
+
+When you start the game you can choose one of four basic 
+professions: fighter, thief, cleric, mage.<br/>
+
+Once you hit level 25 in your main profession guild, you can
+specialize as follows:<br/>
+
+fighter: barbarian<br/>
+thief: assassin<br/>
+cleric: druid<br/>
+mage: sorcerer<br/>
+
+***** Changes to allow more profession variation ******
+
+You can now choose to specialize in your first or second profession as
+long as it is a basic profession. You can still only specialize once.
+Each base profession currently has only one specialization available as
+shown above and you must have the base profession in your professions list
+in order to take the corresponding specialization.
+
+Here are some examples
+Prof 1   | Prof2     | Prof3
+Fighter -> Thief    -> Barbarian
+Fighter -> Thief    -> Assassin
+
+You can also choose not to specialize and only use profession changes.
+Here are some examples
+Prof 1   | Prof2     | Prof3
+Healer  -> Paladin  -> Ranger
+Conjurer-> Priest   -> Paladin
+Thief   -> Knight   -> Priest
+
+Here's the logic tree:
+FIGHTER or BARBARIAN ->
+	THIEF, PRIEST, CONJURER, KNIGHT, PALADIN, RANGER
+	
+THIEF or ASSASSIN ->
+	FIGHTER, PRIEST, CONJURER, KNIGHT, RANGER
+	
+PRIEST or DRUID ->
+	FIGHTER, THIEF, CONJURER, PALADIN, NECROMANCER, RANGER
+	
+CONJURER SORCERER ->
+	FIGHTER, THIEF, PRIEST
+	
+RANGER ->
+	FIGHTER, PALADIN, PRIEST
+	
+PALADIN ->
+	FIGHTER, PRIEST, RANGER
+	
+KNIGHT ->
+	FIGHTER, THIEF, PRIEST
+
+***** Everything below has been deprecated but kept for reference *****
+I made it so that these specializations are not obtainable on a
+career change. Once you hit level 50 in a guild, you can choose your
+second career :<br/>
+
+fighter:<br/>
+   thief, cleric, mage, 
+   knight, paladin, ranger<br/>
+thief:<br/>
+   fighter, cleric, mage,
+   ranger<br/>
+cleric:<br/>
+   fighter, thief, mage,
+   paladin<br/>
+mage:<br/>
+   fighter, thief, cleric,
+   necromancer<br/>
+***********************************************************************
+"
+
+#define PROFESSION_STRINGS "Fighter", "Knight", "Paladin", "Ranger", "Thief", "Assassin", \
+                           "Priest", "Druid", "Obsolete","Necromancer", "Conjurer", "Sorcerer", \
+						   "Barbarian"
+
+%dil
+
+// string ProfessionName@professions(prof_xxx : integer);
+// integer ProfessionIdx@professions(sGuild : string);
+// integer ProfCount@professions(pc : unitptr);
+// integer ReadyCareer(pc : unitptr);
+// integer ReadySpecialize(pc : unitptr);
+// NewPlayerProf@professions(pc : unitptr, prof : integer);
+//
+
+// ===============================================================
+
+// Given a profession number (PROFESSION_XXX) return the name.
+//
+dilbegin string ProfessionName(prof_xxx : integer);
+var
+   sl : stringlist;
+code
+{
+   if ((prof_xxx < 0) or (prof_xxx >= PROFESSION_COUNT))
+      return ("contact admin about profession");
+   sl := {PROFESSION_STRINGS};
+   return (sl.[prof_xxx]);
+}
+dilend
+
+
+// Given profession name, return profession index PROFESSION_XXX
+//
+//
+dilbegin integer ProfessionIdx(sName : string);
+var
+   sl : stringlist;
+   i : integer;
+code
+{
+   sl := {PROFESSION_STRINGS};
+   i := sName in sl;
+   i := i - 1;
+
+   return (i);
+}
+dilend
+
+// ===============================================================
+
+// Counts number of professions. 
+//
+dilbegin integer ProfCount(pc : unitptr);
+var
+   exd : extraptr;
+   i : integer;
+code
+{
+   exd := PROFESSION_KEY in pc.info;
+
+   i := length(exd.names) - 1;
+
+   if (i < 1)
+   {
+      log("ProfCount was < 1 for player " + pc.name + ". Admin should fix.");
+   }
+
+   return (i);
+}
+dilend
+
+
+// Returns the list of professions a character can move into
+// when switching careers
+//
+dilbegin intlist CareerChoices(pc : unitptr);
+external
+   integer ProfessionIdx@professions(sName : string);
+
+var
+   exd : extraptr;
+   n : integer;
+   il : intlist;
+code
+{
+   // Wish I had int in intlist...
+
+   exd := PROFESSION_KEY in pc.info;
+   n := ProfessionIdx(exd.names.[length(exd.names)-1]);
+
+   if ((n == PROFESSION_FIGHTER) or (n == PROFESSION_BARBARIAN))
+   {
+      il := {PROFESSION_THIEF, PROFESSION_PRIEST, PROFESSION_CONJURER, PROFESSION_KNIGHT,
+             PROFESSION_PALADIN, PROFESSION_RANGER};
+   }
+   else if ((n == PROFESSION_THIEF) or (n == PROFESSION_ASSASSIN))
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_PRIEST, PROFESSION_CONJURER,
+             PROFESSION_KNIGHT, PROFESSION_RANGER };
+   }
+   else if ((n == PROFESSION_PRIEST) or (n == PROFESSION_DRUID))
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_THIEF, PROFESSION_CONJURER, 
+             PROFESSION_PALADIN, PROFESSION_NECROMANCER, PROFESSION_RANGER};
+   }
+   else if ((n == PROFESSION_CONJURER) or (n == PROFESSION_SORCERER))
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_THIEF, PROFESSION_PRIEST};
+   }
+   else if (n == PROFESSION_RANGER)
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_PALADIN, PROFESSION_PRIEST};
+   }
+      else if (n == PROFESSION_PALADIN)
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_PRIEST, PROFESSION_RANGER};
+   }
+   else if (n == PROFESSION_KNIGHT)
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_THIEF, PROFESSION_PRIEST};
+   }
+   else if (n == PROFESSION_NECROMANCER)
+   {
+      il := {PROFESSION_FIGHTER, PROFESSION_THIEF, PROFESSION_KNIGHT};
+   }
+
+
+   else
+   {
+      il := null;
+   }
+
+   return (il);
+}
+dilend
+
+
+
+// Returns 1 if the player is has two professions or less. Otherwise returns 0
+// All of the other logic previously in this method is no logner relevant
+
+dilbegin integer ReadyCareer(pc : unitptr);
+external
+   integer ProfCount@professions(pc : unitptr);
+
+var
+   exd : extraptr;
+   n : integer;
+code
+{
+
+   n := ProfCount@professions(pc); 
+
+   if (n <= 2)
+   {
+      return (1);
+   }
+
+   return (0);
+}
+dilend
+
+
+
+
+
+// Returns 1 if the player is ready to move from one of the four 
+// basic professions to a specialization, e.g. from fighter to barbarian.
+//
+dilbegin integer ReadySpecialize(pc : unitptr);
+external
+   integer ProfCount@professions(pc : unitptr);
+   integer ReadyCareer@professions(pc : unitptr);
+
+var
+   exd : extraptr;
+   i : integer;
+   j : integer;
+   profname : string;
+code
+{
+   if (ReadyCareer@professions(pc)) 
+   {
+   	exd := "$profession" in pc.info;
+	i := 1;
+	j := ProfCount@professions(pc);
+	while (i <= j)
+	{ 
+		profName := exd.names.[i];
+		if((profName == "Barbarian") or (profName == "Druid") or (profName == "Sorcerer") or (profName == "Assassin")){
+				return (0);
+			}
+      i := i + 1;
+   }
+   /* players first profession will always be a basic one and there is only a
+   single specialization per basic guild. As you can now specialize based on your first
+   profession while in your second profession, the check was no longer needed and removed */
+         if (pc.level >= 25)
+         {
+            return (1);
+         }         
+   }
+   return (0);
+}
+dilend
+
+
+
+// ONLY CALL FROM INSIDE PROFESSIONS ZONE. PRIVATE FUNCTION.
+// To be called on a player that does not have a $profession setup.
+//    prof (integer) is the profession to set PROFESSION_XXX
+//    descr is description of how it was set (new character, conversion, etc).
+//
+dilbegin SetupProf(pc : unitptr, prof : integer, desc : string);
+var
+   sl : stringlist;
+   i : integer;
+   exd : extraptr;
+
+code
+{
+   exd := PROFESSION_KEY in pc.info;
+
+   // If there is a $professions, then this doesn't apply.
+   if (exd != null)
+   {
+      log("SetInitalProf() called but $profession was already set for player " + pc.name);
+      return;
+   }
+
+   if ((i < 0) or (i >= PROFESSION_COUNT))
+   {
+      log("SetInitalProf() called but prof OOB.");
+      return;
+   }
+
+   pc.profession := prof;
+   addextra(pc.info, {PROFESSION_KEY}, desc+"<br/>");
+   exd := PROFESSION_KEY in pc.info;
+   insert(exd.vals, 0, -1); // Dummy -1 for everyone (matches $profession index)
+
+   sl := {PROFESSION_STRINGS};
+   addstring(exd.names, sl.[prof]);
+   insert(exd.vals, 1, prof); 
+
+   return;
+}
+dilend
+
+
+// ONLY CALL FROM INSIDE PROFESSIONS ZONE. PRIVATE FUNCTION.
+// To be called on a player to add a profession.
+//
+dilbegin AddSpec(pc : unitptr, newProf : integer, desc : string);
+var
+   sl : stringlist;
+   i : integer;
+   exd : extraptr;
+
+code
+{
+   exd := PROFESSION_KEY in pc.info;
+
+   // If there is a $professions, then this doesn't apply.
+   if (exd == null)
+   {
+      log("AddSpec() called but $profession did not exist for player " + pc.name);
+      return;
+   }
+
+   if ((i < 0) or (i >= PROFESSION_COUNT))
+   {
+      log("AddSpec() called but prof OOB.");
+      return;
+   }
+
+   pc.profession := newProf;
+   
+   sl := {PROFESSION_STRINGS};
+   insert(exd.vals, length(exd.names), newProf);
+   addstring(exd.names, sl.[newProf]);
+   exd.descr := exd.descr + desc + "<br/>";
+
+   return;
+}
+dilend
+
+
+// ONLY CALL FROM INSIDE PROFESSIONS ZONE. PRIVATE FUNCTION.
+// To be called on a player to add a profession.
+//
+dilbegin AddNonSpecProf(pc : unitptr, newProf : integer, desc : string);
+var
+   sl : stringlist;
+   i : integer;
+   exd : extraptr;
+
+code
+{
+   exd := PROFESSION_KEY in pc.info;
+
+   // If there is a $professions, then this doesn't apply.
+   if (exd == null)
+   {
+      log("AddNonSpecProf() called but $profession did not exist for player " + pc.name);
+      return;
+   }
+
+   if ((i < 0) or (i >= PROFESSION_COUNT))
+   {
+      log("AddNonSpecProf() called but prof OOB.");
+      return;
+   }
+
+   pc.profession := newProf;  // Zone's DIL calling access level must be set to 0
+   sl := {PROFESSION_STRINGS};
+   insert(exd.vals, length(exd.names), newProf);
+   addstring(exd.names, sl.[newProf]);
+   exd.descr := exd.descr + desc + "<br/>";
+   log(pc.name + " changed to multi class " + sl.[newProf]);
+   return;
+}
+dilend
+
+
+// Call to allow player to do the non specialization profession change.
+//
+dilbegin ChangeProf(pc : unitptr, newProf : integer);
+external
+   AddNonSpecProf(pc : unitptr, newProf : integer, desc : string);  
+   integer ReadyCareer(pc : unitptr);
+   intlist CareerChoices(pc : unitptr);
+   
+var
+   sl : stringlist;
+   il : intlist;
+   i : integer;
+   exd : extraptr;
+
+code
+{
+   // Do a sanity check just to be double sure
+   //
+
+   if (ReadyCareer(pc) == 0)
+   {
+      log("something unexpected happened... dc");
+      return;
+   }
+
+   il := CareerChoices@professions(pc);
+
+   if (il == null)
+   {
+      log("something unexpected happened... ab");
+      return;
+   }
+
+   i := 0;
+
+   while (i < length(il))
+   {
+      if (il.[i] == newProf)
+         goto profok;
+      i := i + 1;
+   }
+   log("something unexpected happened... ac");
+   return;
+
+:profok:
+   AddNonSpecProf(pc, newProf, "Non-specialization profession change."); // xxxx
+   return;
+}
+dilend
+
+// Call to allow player to specialize from starting position to specializaiton.
+// Only.
+//
+dilbegin SpecializeProf(pc : unitptr, newProf : integer);
+external
+   AddSpec(pc : unitptr, newProf : integer, desc : string);
+   integer ProfessionIdx@professions(sName : string);
+
+var
+   sl : stringlist;
+   i : integer;
+   exd : extraptr;
+
+code
+{
+   exd := PROFESSION_KEY in pc.info;
+
+   if (((newProf == PROFESSION_BARBARIAN) and 
+                (ProfessionIdx(exd.names.[1]) == PROFESSION_FIGHTER)) or
+           ((newProf == PROFESSION_ASSASSIN) and 
+   		(ProfessionIdx(exd.names.[1]) == PROFESSION_THIEF)) or
+           ((newProf == PROFESSION_DRUID) and 
+   		(ProfessionIdx(exd.names.[1]) == PROFESSION_PRIEST)) or
+           ((newProf == PROFESSION_SORCERER) and 
+   		(ProfessionIdx(exd.names.[1]) == PROFESSION_CONJURER)))
+   {
+      AddSpec@professions(pc, newProf, "Specializing from " + exd.names.[1] + " to " + itoa(newProf));
+   } 
+   else if (length(exd.names) == 3)
+   {
+   	if (((newProf == PROFESSION_BARBARIAN) and 
+                (ProfessionIdx(exd.names.[2]) == PROFESSION_FIGHTER)) or
+            ((newProf == PROFESSION_ASSASSIN) and 
+   	        (ProfessionIdx(exd.names.[2]) == PROFESSION_THIEF)) or
+            ((newProf == PROFESSION_DRUID) and 
+                (ProfessionIdx(exd.names.[2]) == PROFESSION_PRIEST)) or
+            ((newProf == PROFESSION_SORCERER) and 
+                (ProfessionIdx(exd.names.[2]) == PROFESSION_CONJURER)))
+        {
+        AddSpec@professions(pc, newProf, "Specializing from second profession to " + exd.names.[2] + " to " + itoa(newProf));
+        }
+   }
+   else
+   {
+      log("SpecializeProf() incorrect spec " + pc.name+ " " + itoa(pc.profession) + " " + itoa(newProf));
+   }
+   return;
+}
+dilend
+
+
+
+// Call to setup a new player. Only.
+//
+dilbegin NewPlayerProf(pc : unitptr, prof : integer);
+external
+   SetupProf@professions(pc : unitptr, prof : integer, desc : string);
+
+var
+   sl : stringlist;
+   i : integer;
+   exd : extraptr;
+
+code
+{
+   if ((prof == PROFESSION_FIGHTER) or
+       (prof == PROFESSION_THIEF) or 
+       (prof == PROFESSION_PRIEST) or
+       (prof == PROFESSION_CONJURER))
+   {
+      SetupProf@professions(pc, prof, "New player profession set to "+itoa(prof));
+   }
+   else
+   {
+      log("NewPlayerProf got illegal profession " + itoa(prof));
+   }
+
+   return;
+}
+dilend
+
+
+
+
+dilbegin login_clean(prof : integer, desc : string);
+external
+   SetupProf@professions(pc : unitptr, prof : integer, desc : string);
+code
+{
+   if (PROFESSION_KEY in self.info)
+      return;
+
+   log("prof login_clean()");
+
+   if (prof < 0)
+   {
+      log(self.name + " had profession -1. Bizarre. Setting to 0 (fighter).");
+      prof := 0;
+      if (desc == "")
+         desc := "Bizarre -1";
+   }
+
+   SetupProf@professions(self, prof, desc+"<br/>");
+   return;
+}
+dilend
+
+
+
+
+%end

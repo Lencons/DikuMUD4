@@ -15,6 +15,12 @@
 #include <string>
 #include <utility>
 
+#define TEACH_ABILITIES 0
+#define TEACH_SPELLS 1
+#define TEACH_SKILLS 2
+#define TEACH_WEAPONS 3
+
+
 struct skill_interval
 {
     int skill;
@@ -27,20 +33,29 @@ class skill_collection
 {
 public:
     const char **gettext();
-    skill_collection(int nSize);
+    skill_collection(int nSize, ubit8 teachtype);
+    int max_skill_limit(unit_data *pupil, int node);
 
-    profession_cost *prof_table;
+    std::unique_ptr<profession_cost[]> prof_table;
     const char **text;
     tree_type *tree;
     sbit8 *racial[PC_RACE_MAX];
+    ubit8 teachtype;
 };
 
-struct profession_cost
+class profession_cost
 {
+public:
+    void setProfessionBonus(int professionIndex, sbit8 value);
+    int getProfessionBonus(int professionIndex);
+    int getProfessionBonus(unit_data *pc, ubit8 teachtype);
+
     ubit16 sanity; ///< Used for sanity check
     ubit8 min_level;
     ubit8 min_abil[ABIL_TREE_MAX];
-    sbit8 profession_cost[PROFESSION_MAX]; ///< 0 is middle, +1 easier to learn, -1 more dificult, etc.
+
+private:    
+    sbit8 profession_bonus[PROFESSION_MAX]{}; ///< 0 is middle, +1 easier to learn, -1 more dificult, etc.
 };
 
 /* ---------------- COMBAT MESSAGE SYSTEM -------------------- */

@@ -42,6 +42,8 @@ char g_cur_filename[256], top_filename[256];
 
 void zone_reset(char *default_name);
 void dump_zone(char *prefix);
+void dump_json_zone(char *prefix);
+void write_diltemplate_json(rapidjson::PrettyWriter<rapidjson::StringBuffer> &writer, diltemplate *tmpl);
 long stat_mtime(char *name);
 void dil_free_template(diltemplate *tmpl, int copy, int dil = FALSE);
 void dil_free_var(dilvar *var);
@@ -56,6 +58,7 @@ int g_nooutput = 0;       /* suppress output */
 int g_verbose = 0;        /* be talkative */
 int g_fatal_warnings = 0; /* allow warnings */
 bool g_quiet_compile = false;
+bool g_dump_json = false;
 
 char **ident_names = nullptr; /* Used to check unique ident */
 
@@ -83,6 +86,7 @@ void ShowUsage(char *name)
     fprintf(stderr, "   -I Search specified dir for include files.\n");
     fprintf(stderr, "   -p preprocess file only, output to stdout.\n");
     fprintf(stderr, "   -q Quiet compile.\n");
+    fprintf(stderr, "   -j Dump JSON.\n");
     fprintf(stderr, "Copyright 1994 - 2001 (C) by Valhalla.\n");
 }
 
@@ -157,7 +161,9 @@ void fix(char *file)
     {
         fprintf(stderr, "Fatal error compiling in preprocessor stage in file '%s'.\n", g_cur_filename);
         if (sOutput)
+        {
             FREE(sOutput);
+        }
         exit(1);
     }
 
@@ -186,6 +192,10 @@ void fix(char *file)
     }
     else
     {
+        if (g_dump_json)
+        {
+            dump_json_zone(filename_prefix);
+        }
         dump_zone(filename_prefix);
     }
 }
@@ -270,7 +280,7 @@ unit_data *mcreate_unit(int type)
     unit_data *rslt = nullptr;
 
     // rslt = new (class unit_data) (type);
-    rslt = new_unit_data(type);
+    rslt = new_unit_data(type, nullptr);
 
     init_unit(rslt);
     return rslt;
@@ -356,6 +366,13 @@ void check_unique_ident(unit_data *u)
     ident_names = add_name(UNIT_IDENT(u), ident_names);
 }
 
+ubit32 timecrc()
+{
+    timespec spec;
+    clock_gettime(CLOCK_REALTIME, &spec);
+    return (ubit32)((spec.tv_sec * 1000) + (spec.tv_nsec / 1000000));
+}
+
 /*
    #define write_unit(x,y,z) fprintf(stderr, "Writing: %s\n", z)
    #define write_diltemplate(x,y) fprintf(stderr, "Writing tmpl: %s\n", y->prgname)
@@ -371,7 +388,7 @@ void dump_zone(char *prefix)
     int no_rooms = 0;
     diltemplate *tmpl = nullptr;
     diltemplate *ut = nullptr;
-    ubit32 dummy = 0;
+    ubit32 dummy32 = 0;
 
     /* Quinn, I do this to get all the sematic errors and info */
     /* appear when nooutput = TRUE - it didn't before!         */
@@ -440,11 +457,13 @@ void dump_zone(char *prefix)
         exit(1);
     }
 
-#ifndef DEMO_VERSION
-    #ifdef WRITE_TEST
-    write_unit(fl, zone.z_rooms, UNIT_IDENT(zone.z_rooms));
-    exit(10);
-    #endif
+    //
+    // Begin writing the data
+    //
+    // #ifdef WRITE_TEST
+    // write_unit(fl, zone.z_rooms, UNIT_IDENT(zone.z_rooms));
+    // exit(10);
+    // #endif
     fwrite(g_zone.z_zone.name, sizeof(char), strlen(g_zone.z_zone.name) + 1, fl);
     fwrite(&g_zone.z_zone.weather, sizeof(int), 1, fl);
     /* More data inserted here */
@@ -484,15 +503,17 @@ void dump_zone(char *prefix)
         fwrite("", sizeof(char), 1, fl);
     }
 
+    const ubit32 filecrc = (ubit32)timecrc();
+
     /* write DIL templates */
     for (tmpl = g_zone.z_tmpl; tmpl; tmpl = tmpl->vmcnext)
     {
-        write_diltemplate(fl, tmpl);
+        write_diltemplate(fl, tmpl, filecrc);
     }
 
     /* end of DIL templates marker */
-    dummy = 0;
-    if (fwrite(&dummy, sizeof(dummy), 1, fl) != 1)
+    dummy32 = 0;
+    if (fwrite(&dummy32, sizeof(dummy32), 1, fl) != 1)
     {
         error(HERE, "Failed to fwrite() end of DIL templates");
     }
@@ -500,7 +521,7 @@ void dump_zone(char *prefix)
     write_dot(prefix);
     for (u = g_zone.z_rooms; u; u = u->getNext())
     {
-        write_unit(fl, u, UNIT_IDENT(u));
+        write_unit_datafile(fl, u, UNIT_IDENT(u), filecrc);
     }
 
     u = g_zone.z_rooms;
@@ -513,7 +534,7 @@ void dump_zone(char *prefix)
 
     for (u = g_zone.z_objects; u; u = u->getNext())
     {
-        write_unit(fl, u, UNIT_IDENT(u));
+        write_unit_datafile(fl, u, UNIT_IDENT(u), filecrc);
     }
 
     u = g_zone.z_objects;
@@ -526,7 +547,7 @@ void dump_zone(char *prefix)
 
     for (u = g_zone.z_mobiles; u; u = u->getNext())
     {
-        write_unit(fl, u, UNIT_IDENT(u));
+        write_unit_datafile(fl, u, UNIT_IDENT(u), filecrc);
     }
 
     u = g_zone.z_mobiles;
@@ -564,7 +585,6 @@ void dump_zone(char *prefix)
 
     fwrite("VMC", sizeof(char), 3, fl);
     fclose(fl);
-#endif
 }
 
 long stat_mtime(char *name)

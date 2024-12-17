@@ -35,19 +35,16 @@ time_t year_future = now + (60 * 60 * 24 * 365);
  */
 BOOST_AUTO_TEST_CASE(date_defines_test)
 {
-    BOOST_TEST_MESSAGE("Testing SECS_PER_REAL_* constants");
     BOOST_TEST(SECS_PER_REAL_MIN == 60);
     BOOST_TEST(SECS_PER_REAL_HOUR == 3600);
     BOOST_TEST(SECS_PER_REAL_DAY == 86400);
     BOOST_TEST(SECS_PER_REAL_YEAR == 31536000);
 
-    BOOST_TEST_MESSAGE("Testing MUD_* constants");
     BOOST_TEST(MUD_DAY == 24);
     BOOST_TEST(MUD_WEEK == 7);
     BOOST_TEST(MUD_MONTH == 14);
     BOOST_TEST(MUD_YEAR == 9);
 
-    BOOST_TEST_MESSAGE("Testing SECS_PER_MUD_* constants");
     BOOST_TEST(SECS_PER_MUD_HOUR == 300);
     BOOST_TEST(SECS_PER_MUD_DAY == 7200);
     BOOST_TEST(SECS_PER_MUD_MONTH == 100800);
@@ -195,7 +192,7 @@ BOOST_DATA_TEST_CASE(real_time_passed_test,
  */
 BOOST_AUTO_TEST_CASE(age_npc_test)
 {
-    auto unit = std::unique_ptr<npc_data>(dynamic_cast<npc_data *>(new_unit_data(UNIT_ST_NPC)));
+    auto unit = std::unique_ptr<npc_data>(dynamic_cast<npc_data *>(new_unit_data(UNIT_ST_NPC, nullptr)));
 
     ////////////////////////// Test Subject //////////////////////////////
     auto result = age(unit.get());
@@ -211,7 +208,7 @@ BOOST_AUTO_TEST_CASE(age_npc_test)
 BOOST_AUTO_TEST_CASE(age_pc_test)
 {
     auto age_time = time(nullptr) - 7654321;
-    auto unit = std::unique_ptr<pc_data>(dynamic_cast<pc_data *>(new_unit_data(UNIT_ST_PC)));
+    auto unit = std::unique_ptr<pc_data>(dynamic_cast<pc_data *>(new_unit_data(UNIT_ST_PC, nullptr)));
     unit->getPCTimeInformation().setPlayerBirthday(age_time);
 
     ////////////////////////// Test Subject //////////////////////////////

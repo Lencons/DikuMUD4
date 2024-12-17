@@ -2,5 +2,5 @@ players.id
 execute.dat
 death/
 clan/
-# dilfiles/  # Removed to sort out repo issues and move to dir .gitignore files
+dilfiles/
 justice/

@@ -15,9 +15,9 @@ cmake_install.cmake
 compile_commands.json
 Makefile
 CTestTestfile.cmake
-CMakeDoxyfile.in
-CMakeDoxygenDefaults.cmake
 Testing/
+unit_tests/CTestTestfile.cmake
+core.*
 gmon.out
 
 # Unit testing artifacts created from the build process.

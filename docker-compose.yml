@@ -1,9 +1,16 @@
 version: "3.9"
 services:
   server:
-    image: dikumud3:latest
-    container_name: dikumud3
+    image: dikumud:latest
+    container_name: dikumud
     network_mode: host
+    ports:
+      - "4242:4242"
+      - "4280:4280"
+      - "80:80"
+    environment:
+      - WS_HOST=localhost
+      - WS_PORT=4280
     volumes:
       - server_data:/mnt
     deploy:

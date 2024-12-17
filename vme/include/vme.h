@@ -36,10 +36,13 @@
 #define FALSE 0
 #define TRUE  1
 
+// These are used as enums
 #define A_HIDEINV  10
 #define A_SOMEONE  11
 #define A_ALWAYS   12
+#define A_RAW      14
 
+// These are used as enums
 #define TO_ROOM    0
 #define TO_VICT    1
 #define TO_NOTVICT 2
@@ -189,11 +192,13 @@
 
  RESET_ANYHOW
    A zone is reset regardless of wheter it contains players or not.
+ RESET_NEVER
+   Zone never resets, not even at boot (useful for programmatic triggering).
 */
-#define RESET_NOT 0
-#define RESET_IFEMPTY 1
-#define RESET_ANYHOW 2
-
+#define RESET_NOT     0     
+#define RESET_IFEMPTY 1     
+#define RESET_ANYHOW 2      
+#define RESET_NEVER 3       
 
 
 /* ------------------------- Directions ------------------------------

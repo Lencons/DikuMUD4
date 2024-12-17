@@ -107,9 +107,6 @@ int bread_extra(CByteBuffer *pBuf, extra_list &cExtra, int unit_version)
  */
 diltemplate *bread_diltemplate(CByteBuffer *pBuf, int version)
 {
-#ifdef DMSERVER
-    int valid = 0;
-#endif
     int i = 0;
     int j = 0;
     diltemplate *tmpl = nullptr;
@@ -121,7 +118,7 @@ diltemplate *bread_diltemplate(CByteBuffer *pBuf, int version)
     tmpl->nTriggers = 0;
     tmpl->fCPU = 0.0;
 
-    pBuf->ReadStringAlloc(&tmpl->prgname);
+    pBuf->ReadStringAlloc(&tmpl->prgname); // xxxx
     if (version < 64)
     {
         tmpl->flags = pBuf->ReadU8();
@@ -220,6 +217,7 @@ diltemplate *bread_diltemplate(CByteBuffer *pBuf, int version)
     }
 
 #ifdef DMSERVER
+    int valid = 0;
     /* Resolve the external references runtime */
 
     if (tmpl->xrefcount)
@@ -456,7 +454,12 @@ void *bread_dil(CByteBuffer *pBuf, unit_data *owner, ubit8 version, unit_fptr *f
         }
         else
         {
-            slog(LOG_ALL, 0, "bread_dil() unit (name %s) with no file index: DIL template [%s] no longer exists. bNameRead = %d.", owner->getNames().Name(), name, bNameRead);
+            slog(LOG_ALL,
+                 0,
+                 "bread_dil() unit (name %s) with no file index: DIL template [%s] no longer exists. bNameRead = %d.",
+                 owner->getNames().Name(),
+                 name,
+                 bNameRead);
         }
     }
 
@@ -491,7 +494,7 @@ void *bread_dil(CByteBuffer *pBuf, unit_data *owner, ubit8 version, unit_fptr *f
 
     for (i = 0; i < novar; i++)
     {
-        prg->fp->vars[i].type  = DilVarTypeIntToEnum(pBuf->ReadU8());
+        prg->fp->vars[i].type = DilVarTypeIntToEnum(pBuf->ReadU8());
         prg->fp->vars[i].itype = DilIType_e::Regular;
 
         bool globalVar = false;
@@ -925,9 +928,9 @@ void bwrite_diltemplate(CByteBuffer *pBuf, diltemplate *tmpl)
     {
         pBuf->Append8(tmpl->vart[i]); /* variable types */
         if (tmpl->varg[i] == nullptr)
-            pBuf->AppendString(nullptr);  // Version 76+
+            pBuf->AppendString(nullptr); // Version 76+
         else
-            pBuf->AppendString(tmpl->varg[i]);  // Version 76+
+            pBuf->AppendString(tmpl->varg[i]); // Version 76+
     }
 
     pBuf->Append16(tmpl->xrefcount); /* number of external references */
@@ -997,9 +1000,11 @@ void bwrite_dil(CByteBuffer *pBuf, dilprg *prg)
     {
         pBuf->Append8(prg->frame[0].vars[i].type);
 
-        pBuf->AppendString(prg->frame[0].vars[i].name); // XXXX Null except for global variables, this is the global shared variable name e.g. materials@treasure
+        pBuf->AppendString(prg->frame[0]
+                               .vars[i]
+                               .name); // Null except for global variables, this is the global shared variable name e.g. materials@treasure
         bool globalVar = (prg->frame[0].vars[i].name != nullptr);
-        
+
         switch (prg->frame[0].vars[i].type)
         {
             case DilVarType_e::DILV_SLP:
@@ -1176,11 +1181,6 @@ int write_unit_string(CByteBuffer *pBuf, unit_data *u)
 {
     int i = 0;
 
-#ifdef DMSERVER
-    char zone[FI_MAX_ZONENAME + 1];
-    char name[FI_MAX_UNITNAME + 1];
-#endif
-
     ubit32 nPos = pBuf->GetLength();
 
     pBuf->Append8(UNIT_VERSION); /* Version Number! */
@@ -1211,6 +1211,8 @@ int write_unit_string(CByteBuffer *pBuf, unit_data *u)
 #ifdef VMC_SRC
     pBuf->AppendDoubleString((char *)u->getKey());
 #else
+    char zone[FI_MAX_ZONENAME + 1];
+    char name[FI_MAX_UNITNAME + 1];
     if (u->getKey())
     {
         split_fi_ref(u->getKey(), zone, name);
@@ -1472,50 +1474,40 @@ int write_unit_string(CByteBuffer *pBuf, unit_data *u)
 }
 
 /**
- * Appends unit 'u' to file 'f'. Name is the unique name
+ * Appends unit 'u' to '.data' file 'f'. Name is the unique name
  * Used only by dmc.
+ * Format is: string(name), ubit8(unit type), ubit32(unit string data length), ubit32(datacrc), ubit32(filecrc)
  */
-void write_unit(FILE *f, unit_data *u, char *fname)
+void write_unit_datafile(FILE *f, unit_data *u, char *fname, const ubit32 filecrc)
 {
     CByteBuffer *pBuf = nullptr;
-    ubit32 nSizeStart = 0;
-    ubit32 nStart = 0;
-    ubit32 nPos = 0;
-    ubit32 length = 0;
-    ubit32 crc = 0;
 
     pBuf = &g_FileBuffer;
     pBuf->Clear();
 
-    pBuf->AppendString(fname);       /* Write unique name  */
-    pBuf->Append8(u->getUnitType()); /* Write unit type    */
+    pBuf->AppendString(fname);       // Write the units unique 'name' ('name'@zone)
+    pBuf->Append8(u->getUnitType()); // Write unit type, UNIT_ST_...
+    ubit32 nSizeStart = pBuf->GetLength();
+    pBuf->Append32(0);       /* Write dummy length */
+    pBuf->Append32(0);       /* Write dummy CRC    */
+    pBuf->Append32(filecrc); // Write file CRC (constant for all units in the file)
 
-    nSizeStart = pBuf->GetLength();
-    pBuf->Append32(0); /* Write dummy length */
-    pBuf->Append32(0); /* Write dummy CRC    */
-
-    nStart = pBuf->GetLength();
-
-    length = write_unit_string(pBuf, u);
+    ubit32 nStart = pBuf->GetLength();
+    ubit32 length = write_unit_string(pBuf, u);
 
     /* Calculate the CRC */
-    crc = length;
-
+    ubit32 crc = length;
     for (ubit32 i = 0; i < length; i++)
     {
         crc += (pBuf->GetData()[nStart + i] << (i % 16));
     }
 
-    nPos = pBuf->GetLength();
+    // Let's go back and overwrite length and CRC with the real values
+    ubit32 nPos = pBuf->GetLength();
     pBuf->SetLength(nSizeStart);
-
-    /* Lets write the calculated length of the unit itself */
-    pBuf->Append32(length);
-
-    /* Lets write the calculated length of the unit itself */
-    pBuf->Append32(crc);
-
-    pBuf->SetLength(nPos);
+    pBuf->Append32(length); // Overwrite with the calculated length of the unit itself
+    pBuf->Append32(crc);    // Overwrite with the CRC calculated length of the unit itself
+    pBuf->SetLength(nPos);  // Restore position back to where it was before overwrite
 
     /* Lets write the entire block, including name, type and length info */
     pBuf->FileWrite(f);
@@ -1525,7 +1517,7 @@ void write_unit(FILE *f, unit_data *u, char *fname)
  * Append template 'tmpl' to file 'f'
  * Used only by dmc. for writing zones
  */
-void write_diltemplate(FILE *f, diltemplate *tmpl)
+void write_diltemplate(FILE *f, diltemplate *tmpl, const ubit32 filecrc)
 {
     CByteBuffer *pBuf = nullptr;
     ubit32 length = 0;
@@ -1535,14 +1527,13 @@ void write_diltemplate(FILE *f, diltemplate *tmpl)
     pBuf = &g_FileBuffer;
     pBuf->Clear();
 
-    pBuf->Append32(0); /* Write dummy length */
+    pBuf->Append32(0);       /* Write dummy length */
+    pBuf->Append32(filecrc); // A unique crc (timestamp) for this file used to detect changes
     nStart = pBuf->GetLength();
-
     bwrite_diltemplate(pBuf, tmpl);
 
     /* We are now finished, and are positioned just beyond last data byte */
     length = pBuf->GetLength() - nStart;
-
     nPos = pBuf->GetLength();
 
     pBuf->SetLength(0);

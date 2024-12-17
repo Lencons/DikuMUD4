@@ -1503,10 +1503,11 @@ void dilfe_eqpm(dilprg *p)
     delete v2;
 }
 
-/* int meleeAttack(unit, unit, int, int) */
+/* int meleeAttack(unit, unit, int, int, int) */
 void dilfe_mel(dilprg *p)
 {
     dilval *v = new dilval;
+    dilval *v5 = p->stack.pop();
     dilval *v4 = p->stack.pop();
     dilval *v3 = p->stack.pop();
     dilval *v2 = p->stack.pop();
@@ -1538,14 +1539,21 @@ void dilfe_mel(dilprg *p)
                                     switch (dil_getval(v4))
                                     {
                                         case DILV_INT:
-                                            v->val.num = one_hit((unit_data *)v1->val.ptr,
-                                                                 (unit_data *)v2->val.ptr,
-                                                                 v3->val.num,
-                                                                 v4->val.num,
-                                                                 TRUE,
-                                                                 TRUE);
-                                            dil_test_secure(p);
-
+						switch (dil_getval(v5)) // added new option to deal with primary vs secondary weapon
+						{
+							case DILV_INT:
+								v->val.num = one_hit((unit_data *)v1->val.ptr,
+                                                                (unit_data *)v2->val.ptr,
+                                                                v3->val.num,
+                                                                v4->val.num,
+                                                                v5->val.num,
+                                                                TRUE);
+								dil_test_secure(p);
+								break;
+							default:
+								v->type = DILV_ERR;
+								break;
+						}
                                             break;
                                         default:
                                             v->type = DILV_ERR;
@@ -1582,6 +1590,7 @@ void dilfe_mel(dilprg *p)
     delete v2;
     delete v3;
     delete v4;
+    delete v5;
 }
 
 /* int meleedamage(unit, unit, int, int) */
@@ -3367,7 +3376,7 @@ void dilfe_sact(dilprg *p)
                 if (v3->val.ptr)
                 {
                     char dest[MAX_STRING_LENGTH];
-                    sact(dest, (char *)v1->val.ptr, v2->val.num, v3, v4, v5, v6->val.num);
+                    sact(dest, (char *)v1->val.ptr, ActShow(v2->val.num), v3, v4, v5, ActType(v6->val.num));
                     v->val.ptr = str_dup(dest);
                     v->atyp = DILA_EXP;
                     v->type = DILV_SP;
@@ -3379,7 +3388,7 @@ void dilfe_sact(dilprg *p)
                 if (v5->val.ptr)
                 {
                     char dest[MAX_STRING_LENGTH];
-                    sact(dest, (char *)v1->val.ptr, v2->val.num, v3, v4, v5, v6->val.num);
+                    sact(dest, (char *)v1->val.ptr, ActShow(v2->val.num), v3, v4, v5, ActType(v6->val.num));
                     v->val.ptr = str_dup(dest);
                     v->atyp = DILA_EXP;
                     v->type = DILV_SP;
@@ -3466,6 +3475,8 @@ void dilfe_gint(dilprg *p)
 
     if (v->type == DILV_INT)
     {
+        time_t t;
+        struct tm *timeInfo;
         switch (idx)
         {
             case DIL_GINT_MANAREG:
@@ -3525,6 +3536,24 @@ void dilfe_gint(dilprg *p)
 
             case DIL_GINT_BONUS_B:
                 v->val.num = bonus_map_b(p_i);
+                break;
+
+            case DIL_GINT_REALYEAR:
+                t = time(0);
+                timeInfo = gmtime(&t);
+                v->val.num = 1900 + timeInfo->tm_year;
+                break;
+
+            case DIL_GINT_REALMONTH:
+                t = time(0);
+                timeInfo = gmtime(&t);
+                v->val.num = timeInfo->tm_mon + 1;
+                break;
+
+            case DIL_GINT_REALDAY:
+                t = time(0);
+                timeInfo = gmtime(&t);
+                v->val.num = timeInfo->tm_mday;
                 break;
 
             default:
@@ -6912,46 +6941,57 @@ void dilfe_pck(dilprg *p)
     dilval *v1 = p->stack.pop();
 
     v->type = DILV_INT;
-    switch (dil_getval(v1))
-    {
-        case DILV_FAIL:
-        case DILV_NULL:
-            v->type = DILV_FAIL;
-            break;
-        case DILV_UP:
-            if (!v1->val.ptr || !((unit_data *)v1->val.ptr)->isChar())
-            {
-                v->type = DILV_FAIL;
-            }
-            else
-            {
-                switch (dil_getval(v2))
-                {
-                    case DILV_FAIL:
-                    case DILV_NULL:
-                        v->type = DILV_FAIL;
-                        break;
-                    case DILV_UP:
-                        if (!v2->val.ptr)
-                        {
-                            v->type = DILV_FAIL;
-                        }
-                        else
-                        {
-                            v->val.num = pay_point_charlie((unit_data *)v1->val.ptr, (unit_data *)v2->val.ptr);
-                        }
-                        break;
-                    default:
-                        v->type = DILV_ERR;
-                        break;
-                }
-            }
 
-            break;
-        default:
-            v->type = DILV_ERR;
-            break;
+    // Don't evaluate in case accounting is off. Evaluating might fail
+    // and lead to undesired results.
+    if (g_cServerConfig.isAccounting() == false)
+    {
+        v->val.num = 1;
     }
+    else
+    {
+        switch (dil_getval(v1))
+        {
+            case DILV_FAIL:
+            case DILV_NULL:
+                v->type = DILV_FAIL;
+                break;
+            case DILV_UP:
+                if (!v1->val.ptr || !((unit_data *)v1->val.ptr)->isChar())
+                {
+                    v->type = DILV_FAIL;
+                }
+                else
+                {
+                    switch (dil_getval(v2))
+                    {
+                        case DILV_FAIL:
+                        case DILV_NULL:
+                            v->type = DILV_FAIL;
+                            break;
+                        case DILV_UP:
+                            if (!v2->val.ptr)
+                            {
+                                v->type = DILV_FAIL;
+                            }
+                            else
+                            {
+                                v->val.num = pay_point_charlie((unit_data *)v1->val.ptr, (unit_data *)v2->val.ptr);
+                            }
+                            break;
+                        default:
+                            v->type = DILV_ERR;
+                            break;
+                    }
+                }
+
+                break;
+            default:
+                v->type = DILV_ERR;
+                break;
+        }
+    }
+
     p->stack.push(v);
     delete v1;
     delete v2;
@@ -7014,7 +7054,7 @@ void dilfe_act(dilprg *p)
                 /* these require 1st argument */
                 if (v3->val.ptr)
                 {
-                    act_generate(buf, (char *)v1->val.ptr, v2->val.num, v3, v4, v5, v6->val.num, (unit_data *)v3->val.ptr);
+                    act_generate(buf, (char *)v1->val.ptr, ActShow(v2->val.num), v3, v4, v5, ActType(v6->val.num), (unit_data *)v3->val.ptr);
                 }
                 v->type = DILV_SP;
                 v->atyp = DILA_EXP;
@@ -7025,7 +7065,7 @@ void dilfe_act(dilprg *p)
             case TO_NOTVICT:
                 if (v5->val.ptr)
                 {
-                    act_generate(buf, (char *)v1->val.ptr, v2->val.num, v3, v4, v5, v6->val.num, (unit_data *)v5->val.ptr);
+                    act_generate(buf, (char *)v1->val.ptr, ActShow(v2->val.num), v3, v4, v5, ActType(v6->val.num), (unit_data *)v5->val.ptr);
                 }
                 v->type = DILV_SP;
                 v->atyp = DILA_EXP;

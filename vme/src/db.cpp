@@ -48,7 +48,6 @@
 
 const char *g_player_zone = "_players";
 
-int g_room_number;                ///< For counting numbers in rooms
 unit_data *g_unit_list = nullptr; ///< The global unit_list
 unit_data *g_npc_head = nullptr;
 unit_data *g_obj_head = nullptr;
@@ -180,11 +179,11 @@ void resolve_templates()
 /**
  * Generate and read DIL templates
  */
-diltemplate *generate_templates(FILE *f, zone_type *zone)
+diltemplate *generate_datafile_diltemplates(FILE *f, zone_type *zone, bool do_reindex)
 {
     diltemplate *tmpllist = nullptr;
     CByteBuffer Buf;
-    ubit32 tmplsize = 0;
+    sbit32 tmplsize = 0;
     char nBuf[256];
     char zBuf[256];
 
@@ -192,16 +191,34 @@ diltemplate *generate_templates(FILE *f, zone_type *zone)
 
     /*
      * The global templates are preceded with their length
-     * written by write_template() in db_file.c
+     * written by write_template() in db_file.c and now also
+     * the filecrc
      */
 
-    if (fread(&(tmplsize), sizeof(ubit32), 1, f) != 1)
+    ubit32 filecrc = 0;
+    while (!feof(f))
     {
-        error(HERE, "Failed to fread() tmplsize");
-    }
+        if (fread(&(tmplsize), sizeof(ubit32), 1, f) != 1)
+        {
+            error(HERE, "Failed to fread() tmplsize");
+        }
 
-    while (tmplsize && !feof(f))
-    {
+        if (tmplsize == 0) // End of templates marker
+        {
+            break;
+        }
+
+        if (tmplsize < 0)
+        {
+            error(HERE, "Unexpected templatesize");
+        }
+
+        if (fread(&(filecrc), sizeof(filecrc), 1, f) != 1)
+        {
+            error(HERE, "Failed to fread() filecrc");
+        }
+        zone->setCrc(filecrc);
+
         Buf.FileRead(f, tmplsize);
 
         auto tmpl = std::unique_ptr<diltemplate>(bread_diltemplate(&Buf, UNIT_VERSION));
@@ -218,10 +235,9 @@ diltemplate *generate_templates(FILE *f, zone_type *zone)
             str_lower(tmpl->prgname);
             zone->insertDILTemplate(std::move(tmpl));
         }
-        /* next size */
-        if (fread(&(tmplsize), sizeof(ubit32), 1, f) != 1)
+        else
         {
-            error(HERE, "Failed to fread() tmplsize");
+            error(HERE, "Couldn't read DIL template.");
         }
     }
 
@@ -229,50 +245,44 @@ diltemplate *generate_templates(FILE *f, zone_type *zone)
 }
 
 /**
- * Generate index's for each unit in the file 'f', zone 'zone'
+ * Generate index's for each unit in the '.data' file 'f', zone 'zone'
+ * Format is: string(name), ubit32(filecrc), ubit8(unit type), ubit32(unit string data length), ubit32(datacrc)
+ * Returns number of rooms read.
  */
-void generate_file_indexes(FILE *f, zone_type *zone)
+int generate_datafile_file_indexes(FILE *f, zone_type *zone, bool do_reindex)
 {
-    file_index_type *fi = nullptr;
-    static int object_num = 0;
-    static int npc_num = 0;
-
-    static int room_num = 0;
-
     CByteBuffer cBuf(100);
 
-    g_room_number = 0;
+    int room_number = 0;
 
     for (;;)
     {
-        fstrcpy(&cBuf, f);
+        fstrcpy(&cBuf, f); //get fname
 
         if (feof(f))
         {
             break;
         }
 
-        auto temp_index = std::make_unique<file_index_type>();
-        temp_index->setName(reinterpret_cast<const char *>(cBuf.GetData()), true);
-
-        temp_index->setZone(zone);
-        // temp_index->unit = NULL;
-        temp_index->setCRC(0);
-
-        ubit8 temp_8{};
+        ubit8 temp_8{};  // get Type
         if (fread(&temp_8, sizeof(ubit8), 1, f) != 1)
         {
-            error(HERE, "Failed to fread() temp_index->type");
+            error(HERE, "Failed to fread() unit type");
         }
-        temp_index->setType(temp_8);
 
-        ubit32 temp_32{};
+        // Maybe the file_index constructor should require a name and a zone.
+        auto temp_index = std::make_unique<file_index_type>(zone, (const char *) cBuf.GetData(), temp_8);
+
+        // get Length
+        sbit32 temp_32{};
         if (fread(&temp_32, sizeof(ubit32), 1, f) != 1)
         {
             error(HERE, "Failed to fread() temp_index->length");
         }
+        assert(temp_32 > 0);
         temp_index->setLength(temp_32);
 
+        // get data CRC
         temp_32 = 0;
         if (fread(&temp_32, sizeof(ubit32), 1, f) != 1)
         {
@@ -280,44 +290,114 @@ void generate_file_indexes(FILE *f, zone_type *zone)
         }
         temp_index->setCRC(temp_32);
 
-        fi = temp_index.get();
+        // This is the file location we'll want to jump to when reading from the .data
+        // From here we'll read the CRC, check it, and then parse the unit.
+        auto startReadPos = ftell(f);
+
+        // get fileCRC (zone based)
+        if (fread(&temp_32, sizeof(ubit32), 1, f) != 1)
+        {
+            error(HERE, "Failed to fread() filecrc for the zone");
+        }
+        zone->setCrc(temp_32); // Will fail if CRC changes
+
+        temp_index->setFilepos(startReadPos);
+
+        if (temp_index->getType() == UNIT_ST_ROOM)
+        {
+            temp_index->setRoomNum(room_number++);
+        }
+
+        // Skip over the 'data' portion since we didnn't read it from the file
+        // i.e. skip forward "length" from the current file position
+        fseek(f, ftell(f) + temp_index->getLength(), SEEK_SET);
+
         zone->insertFileIndex(std::move(temp_index));
-        fi->setFilepos(ftell(f));
-        if (fi->getType() == UNIT_ST_OBJ)
-        {
-            zone->incrementNumOfObjects();
-            object_num++;
-        }
-
-        if (fi->getType() == UNIT_ST_NPC)
-        {
-            zone->incrementNumOfNPCs();
-            npc_num++;
-        }
-
-        if (fi->getType() == UNIT_ST_ROOM)
-        {
-            zone->incrementNumOfRooms();
-        }
-
-        if (fi->getType() == UNIT_ST_ROOM)
-        {
-            fi->setRoomNum(g_room_number++);
-            room_num++;
-        }
-        else
-        {
-            fi->setRoomNum(0);
-        }
-
-        /* We are now positioned at first data byte */
-        fi->setFilepos(ftell(f));
-        fi->setNumInMemory(0);
-
-        /* Seek forward to next index, so we are ready */
-        fseek(f, fi->getFilepos() + fi->getLength(), SEEK_SET);
     }
+
+    return room_number;
 }
+
+
+// Parses zone.data binary file on disk. 
+// Returns true if successful, false otherwise
+//
+bool parse_datafile(zone_type *zone, bool do_reindex)
+{
+    FILE *f = nullptr;
+    CByteBuffer cBuf(MAX_STRING_LENGTH);
+    char filename[82 + 41];
+
+    snprintf(filename, sizeof(filename), "%s%s.data", g_cServerConfig.getZoneDir().c_str(), zone->getName().c_str());
+
+    if ((f = fopen_cache(filename, "rb")) == nullptr)
+    {
+        slog(LOG_OFF, 0, "Could not open data file: %s", filename);
+        return false; /* Next file, please */
+    }
+
+    if (fsize(f) <= 3)
+    {
+        slog(LOG_OFF, 0, "Data file empty: %s", filename);
+        return false; /* Next file, please */
+    }
+
+    fstrcpy(&cBuf, f);
+
+    if (str_ccmp((char *)cBuf.GetData(), zone->getName().c_str()) != 0)
+    {
+        error(HERE, "ERROR: Zone name %s must match the filename on disk: %s ", (char *)cBuf.GetData(), zone->getName());
+    }
+
+    int temp1{0};
+    int mstmp = fread(&temp1, sizeof(int), 1, f);
+    if (mstmp < 1)
+    {
+        slog(LOG_ALL, 0, "ERROR: Unexpected end of stream %d in db.cpp", mstmp);
+        assert(FALSE);
+    }
+    zone->getWeather().setBase(temp1);
+
+    /* More data read here */
+    fstrcpy(&cBuf, f);
+    zone->setNotes(str_dup((char *)cBuf.GetData()));
+
+    fstrcpy(&cBuf, f);
+    zone->setHelp(str_dup((char *)cBuf.GetData()));
+
+    for (;;)
+    {
+        fstrcpy(&cBuf, f);
+
+        if (cBuf.GetData()[0] == 0)
+        {
+            break;
+        }
+
+        zone->getCreators().AppendName((char *)cBuf.GetData());
+    }
+
+    fstrcpy(&cBuf, f);
+
+    if (cBuf.GetData()[0] != 0)
+    {
+        zone->setTitle(str_dup((char *)cBuf.GetData()));
+    }
+    else
+    {
+        zone->setTitle(str_dup(""));
+    }
+
+    generate_datafile_diltemplates(f, zone, do_reindex);  // Read DIL templates
+    int room_count = generate_datafile_file_indexes(f, zone, do_reindex);
+
+    zone->setNumOfRooms(room_count); /* Number of rooms in the zone */
+
+    fflush(f); /* Don't fclose(f); since we are using fopen_cache */
+
+    return true;
+}
+
 
 /**
  * Call this routine at boot time, to index all zones
@@ -326,11 +406,9 @@ void generate_zone_indexes()
 {
     char zone[82];
     char tmpbuf[82];
-    char filename[82 + 41];
     char buf[MAX_STRING_LENGTH];
     char dilfilepath[255];
     CByteBuffer cBuf(MAX_STRING_LENGTH);
-    FILE *f = nullptr;
     FILE *zone_file = nullptr;
     char *c = nullptr;
     ubit8 access = 0;
@@ -346,7 +424,7 @@ void generate_zone_indexes()
     }
 
     // Insert a virtual zone _players
-    auto z = new zone_type{"_players", "ply"};
+    auto z = new zone_type{"_players"};
     z->setTitle("Reserved zone for player file_indexes");
     z->setNotes("This zone is only here to allow us to use playername@_plaeyrs as with all other indexes such as mayor@midgaard. It's not "
                 "actually a zone, and it's not a representation of player files on disk\n");
@@ -372,8 +450,6 @@ void generate_zone_indexes()
         {
             break;
         }
-
-        snprintf(filename, sizeof(filename), "%s%s.data", g_cServerConfig.getZoneDir().c_str(), zone);
 
         /* Skip password */
         c = str_next_word_copy(c, tmpbuf);
@@ -419,89 +495,33 @@ void generate_zone_indexes()
 
         c = str_next_word_copy(c, dilfilepath);
 
-        if ((f = fopen_cache(filename, "rb")) == nullptr)
-        {
-            slog(LOG_OFF, 0, "Could not open data file: %s", filename);
-            continue; /* Next file, please */
-        }
-
-        if (fsize(f) <= 3)
-        {
-            slog(LOG_OFF, 0, "Data file empty: %s", filename);
-            continue; /* Next file, please */
-        }
-
-        slog(LOG_ALL, 0, "Indexing %s AC[%3d] LL[%d] PO[%d]", filename, access, loadlevel, payonly);
-
-        fstrcpy(&cBuf, f);
-        z = new zone_type{(char *)cBuf.GetData(), zone};
-        g_zone_info.no_of_zones++;
-
-        if (*dilfilepath)
-        {
-            z->setDILFilePath(str_dup(dilfilepath));
-        }
-
-        if (find_zone(z->getName().c_str()))
+        if (find_zone(zone))
         {
             slog(LOG_ALL, 0, "ZONE BOOT: Duplicate zone name [%s] not allowed", z->getName());
             exit(42);
         }
 
-        // Insert zone into sorted list
-        g_zone_info.mmp.insert(std::make_pair(z->getName(), z));
+        slog(LOG_ALL, 0, "Indexing %s AC[%3d] LL[%d] PO[%d]", zone, access, loadlevel, payonly);
 
-        int temp1{0};
-        int mstmp = fread(&temp1, sizeof(int), 1, f);
-        if (mstmp < 1)
-        {
-            slog(LOG_ALL, 0, "ERROR: Unexpected end of stream %d in db.cpp", mstmp);
-            assert(FALSE);
-        }
-        z->getWeather().setBase(temp1);
+        // Ok, now we're ready to create the skeleton zone_type class
+        z = new zone_type{zone};
+        g_zone_info.no_of_zones++;
 
         z->setAccessLevel(access);
         z->setLevelRequiredToLoadItems(loadlevel);
         z->setPayOnly(payonly);
 
-        /* More data read here */
-        fstrcpy(&cBuf, f);
-        z->setNotes(str_dup((char *)cBuf.GetData()));
-
-        fstrcpy(&cBuf, f);
-        z->setHelp(str_dup((char *)cBuf.GetData()));
-
-        for (;;)
+        if (*dilfilepath)
         {
-            fstrcpy(&cBuf, f);
-
-            if (cBuf.GetData()[0] == 0)
-            {
-                break;
-            }
-
-            z->getCreators().AppendName((char *)cBuf.GetData());
+            z->setDILFilePath(str_dup(dilfilepath));
         }
-
-        fstrcpy(&cBuf, f);
-
-        if (cBuf.GetData()[0] != 0)
-        {
-            z->setTitle(str_dup((char *)cBuf.GetData()));
-        }
-        else
-        {
-            z->setTitle(str_dup(""));
-        }
-
-        /* read templates */
-        generate_templates(f, z);
-
         z->setZoneResetCommands(nullptr);
-        generate_file_indexes(f, z);
-        z->setNumOfRooms(g_room_number); /* Number of rooms in the zone */
 
-        fflush(f); /* Don't fclose(f); since we are using _cache */
+        if (parse_datafile(z, false))
+        {
+            // Insert zone into sorted list
+            g_zone_info.mmp.insert(std::make_pair(z->getName(), z));
+        }
     }
     fclose(zone_file);
 
@@ -630,7 +650,7 @@ unit_data *read_unit_string(CByteBuffer *pBuf, int type, int len, const char *wh
     }
 
     // u = new EMPLACE(unit_data) unit_data(type);
-    u = new_unit_data(type);
+    u = new_unit_data(type, nullptr); // Would be preferable to have a file_index_type passed here 
 
     nStart = pBuf->GetReadPosition();
     unit_version = pBuf->ReadU8(&g_nCorrupt);
@@ -956,7 +976,6 @@ unit_data *read_unit_string(CByteBuffer *pBuf, int type, int len, const char *wh
                     {
                         slog(LOG_ALL, 0, "ADJUST: Player %s XP increased from %d to %d", u->getNames().Name(), CHAR_EXP(u), xpfloor);
                         UCHAR(u)->setPlayerExperience(xpfloor);
-                        // xxx
                     }
                 }
 
@@ -1123,8 +1142,19 @@ unit_data *read_unit_string(CByteBuffer *pBuf, int type, int len, const char *wh
                 UNPC(u)->setDefaultPosition(pBuf->ReadU8(&g_nCorrupt));
                 UNPC(u)->setAllNPCFlags(pBuf->ReadU8(&g_nCorrupt));
             }
+            if (u->isPC() && (unit_version < 77))
+            {
+                // Upgrade in ability points from 4,000 to 4,500
+                if (PC_VIRTUAL_LEVEL(u) > 100)
+                {
+                    // So players above level 100, gain up to 500 
+                    int additional = MIN(13, PC_VIRTUAL_LEVEL(u) - 100) * 40;
+                    UPC(u)->increaseAbilityPointsBy(additional);
+                    slog(LOG_ALL, 0, "ADJUST: Player %s (VL %d) ability points increased with %d", u->getNames().Name(), PC_VIRTUAL_LEVEL(u), additional);
+                }
+            }
         }
-        break;
+        break; // UNIT_ST_PC
 
         case UNIT_ST_OBJ:
             UOBJ(u)->setValueAtIndexTo(0, pBuf->ReadS32(&g_nCorrupt));
@@ -1297,13 +1327,14 @@ unit_data *read_unit_string(CByteBuffer *pBuf, int type, int len, const char *wh
 }
 
 /**
- * Room directions points to file_indexes instead of units
- * after a room has been read, due to initialization considerations
+ * Fetches the data ready to pass to read_unit_string from a '.data' file.
  */
-void read_unit_file(file_index_type *org_fi, CByteBuffer *pBuf)
+void read_unit_datafile(file_index_type *org_fi, CByteBuffer *pBuf)
 {
+    assert(org_fi->getFilepos() > 0);
+
     std::filesystem::path buf{g_cServerConfig.getZoneDir()};
-    buf += org_fi->getZone()->getFilename();
+    buf += org_fi->getZone()->getName();
     buf += ".data";
     FILE *f = fopen_cache(buf.c_str(), "rb");
     if (f == nullptr)
@@ -1311,7 +1342,18 @@ void read_unit_file(file_index_type *org_fi, CByteBuffer *pBuf)
         error(HERE, "Couldn't open %s for reading.", buf);
     }
 
-    pBuf->FileRead(f, org_fi->getFilepos(), org_fi->getLength());
+    int len = pBuf->FileRead(f, org_fi->getFilepos(), org_fi->getLength() + sizeof(ubit32)); // data length + the filecrc
+
+    if (len != (int) (org_fi->getLength() + sizeof(ubit32)))
+    {
+        error(HERE, "Unable to read specified number of bytes in .data file %s", buf);
+    }
+
+    ubit32 filecrc = pBuf->ReadU32(&g_nCorrupt);
+    if (filecrc != org_fi->getZone()->getCrc())
+    {
+        error(HERE, "FileCRC changed, we need to reindex");
+    }
 }
 
 void bonus_setup(unit_data *u)
@@ -1340,6 +1382,7 @@ void bonus_setup(unit_data *u)
     }
 }
 
+
 /**
  * Room directions points to file_indexes instead of units
  * after a room has been read, due to initialization considerations
@@ -1353,12 +1396,17 @@ unit_data *read_unit(file_index_type *org_fi, int ins_list)
         return nullptr;
     }
 
+    if (org_fi->getFilepos() < 1)  // This would happen for players in papi@_players
+    {
+        return nullptr;
+    }
+
     if (is_slimed(org_fi))
     {
         org_fi = g_slime_fi;
     }
 
-    read_unit_file(org_fi, &g_FileBuffer);
+    read_unit_datafile(org_fi, &g_FileBuffer);
 
     unit_error_zone = org_fi->getZone();
 
@@ -1367,7 +1415,7 @@ unit_data *read_unit(file_index_type *org_fi, int ins_list)
                          org_fi->getLength(),
                          str_cc(org_fi->getName(), org_fi->getZone()->getName().c_str()),
                          ins_list);
-    u->set_fi(org_fi);
+    u->setFileIndex(org_fi);
 
     bonus_setup(u);
 
@@ -1478,7 +1526,7 @@ void normalize_world()
 /** For local error purposes */
 static zone_type *read_zone_error = nullptr;
 
-zone_reset_cmd *read_zone(FILE *f, zone_reset_cmd *cmd_list)
+zone_reset_cmd *read_zone_reset(FILE *f, zone_reset_cmd *cmd_list)
 {
     zone_reset_cmd *cmd = nullptr;
     zone_reset_cmd *tmp_cmd = nullptr;
@@ -1612,7 +1660,7 @@ zone_reset_cmd *read_zone(FILE *f, zone_reset_cmd *cmd_list)
                 break;
 
             case ZON_DIR_NEST:
-                cmd->setNestedPtr(read_zone(f, nullptr));
+                cmd->setNestedPtr(read_zone_reset(f, nullptr));
                 break;
 
             case ZON_DIR_UNNEST:
@@ -1628,7 +1676,10 @@ zone_reset_cmd *read_zone(FILE *f, zone_reset_cmd *cmd_list)
     return cmd_list;
 }
 
-void read_all_zones()
+
+// Reads .reset file from a zone
+//
+void read_all_zones_reset()
 {
     for (auto zone = g_zone_info.mmp.begin(); zone != g_zone_info.mmp.end(); zone++)
     {
@@ -1640,12 +1691,12 @@ void read_all_zones()
         }
 
         std::filesystem::path filename{g_cServerConfig.getZoneDir()};
-        filename += zone->second->getFilename();
+        filename += zone->second->getName();
         filename += ".reset";
         FILE *f = fopen(filename.c_str(), "rb");
         if (f == nullptr)
         {
-            slog(LOG_OFF, 0, "Could not open zone file: %s", zone->second->getFilename());
+            slog(LOG_OFF, 0, "Could not open zone file: %s", zone->second->getName());
             exit(10);
         }
 
@@ -1663,7 +1714,7 @@ void read_all_zones()
         }
         zone->second->setResetMode(temp2);
 
-        zone->second->setZoneResetCommands(read_zone(f, nullptr));
+        zone->second->setZoneResetCommands(read_zone_reset(f, nullptr));
 
         fclose(f);
     }
@@ -1737,7 +1788,7 @@ void boot_db()
     }
 
     slog(LOG_OFF, 0, "Reading Zone Reset information.");
-    read_all_zones();
+    read_all_zones_reset();
 
     g_cAccountConfig.Boot();
 

@@ -11,12 +11,14 @@
 #include "weather.h"
 #include "zone_type.h"
 
+#include <rapidjson/document.h>
+
 /**
  * Creates a new unit of the specified type
  * @param type One of UNIT_ST_ROOM, UNIT_ST_OBJ, UNIT_ST_PC, UNIT_ST_NPC
  * @return new'ed pointer to clasee
  */
-unit_data *new_unit_data(ubit8 type);
+unit_data *new_unit_data(ubit8 type, file_index_type *fi);
 
 class unit_data : public basedestruct
 {
@@ -35,7 +37,7 @@ public:
     /**
      * @param unit_type One of UNIT_ST_NPC, UNIT_ST_PC, UNIT_ST_ROOM, UNIT_ST_OBJ
      */
-    explicit unit_data(ubit8 unit_type);
+    explicit unit_data(ubit8 unit_type, file_index_type *fi);
 
     unit_data(const unit_data &) = delete;            ///< Delete copy ctor
     unit_data(unit_data &&) = delete;                 ///< Delete move ctor
@@ -45,7 +47,6 @@ public:
     /// @}
 
     unit_data *copy();
-    void set_fi(file_index_type *f);
 
     /**
      * @name What type is this object related code
@@ -114,7 +115,8 @@ public:
      */
     file_index_type *getFileIndex();
     const file_index_type *getFileIndex() const;
-    void setFileIndex(file_index_type *value);
+
+    void setFileIndex(file_index_type *fi);
 
     [[nodiscard]] const char *getFileIndexZoneName() const
     {
@@ -366,6 +368,10 @@ public:
 
     int destruct_classindex();
     std::string json();
+
+    virtual void toJSON(rapidjson::PrettyWriter<rapidjson::StringBuffer> &writer) const;
+
+    [[nodiscard]] std::string getID() const { return m_fi->getSymName(); }
 
 private:
     cNamelist m_names;                       ///< Name Keyword list for get, enter, etc.

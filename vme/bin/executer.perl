@@ -101,8 +101,8 @@ if ($mail ne "") {
 
 sub mail {
   local ($request, $zone, $address) = @_;
-  local ($zon) = "/home/val/vme/zones";
-                            local ($nxtzon) = "/home/val/vme/zones/nxtzon";
+  local ($zon) = "/home/val/vme/zone";
+                            local ($nxtzon) = "/home/val/vme/zone/nxtzon";
   if ($request ne "zone") {
     return;
   } elsif ($zone eq "zonelist") {

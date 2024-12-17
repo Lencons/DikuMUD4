@@ -33,7 +33,7 @@ sbit32 g_player_id = 1; // Looks to me like it needs to begin with 1 (crash on s
 void assign_player_file_index(unit_data *pc)
 {
     zone_type *z = find_zone(g_player_zone);
-    pc->setFileIndex(z->findOrCreateFileIndex(PC_FILENAME(pc)));
+    pc->setFileIndex(z->findOrCreatePlayerFileIndex(PC_FILENAME(pc)));
 }
 
 std::string PlayerFileName(const char *pName)
@@ -359,16 +359,16 @@ void save_player_contents(unit_data *pc, int fast)
             }
 
             tdiff = (keep_period - t0) / SECS_PER_REAL_HOUR;
-            act("Inventory expires in $2d hours ($3t daily).", A_ALWAYS, pc, (int *)&tdiff, money_string(daily_cost, cur, FALSE), TO_CHAR);
+            act("Inventory expires in $2d hours ($3t daily).", eA_ALWAYS, pc, (int *)&tdiff, money_string(daily_cost, cur, FALSE), eTO_CHAR);
         }
         else
         {
             act("You can't afford to keep your inventory (cost is $3t).",
-                A_ALWAYS,
+                eA_ALWAYS,
                 pc,
                 cActParameter(),
                 money_string(daily_cost, cur, FALSE),
-                TO_CHAR);
+                eTO_CHAR);
         }
     }
 

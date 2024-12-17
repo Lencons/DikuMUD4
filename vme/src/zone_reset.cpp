@@ -175,7 +175,7 @@ unit_data *zone_load(unit_data *u, zone_reset_cmd *cmd)
             dil_loadtime_activate(loaded);
             if (loaded->isChar())
             {
-                act("$1n has arrived.", A_HIDEINV, loaded, cActParameter(), cActParameter(), TO_ROOM);
+                act("$1n has arrived.", eA_HIDEINV, loaded, cActParameter(), cActParameter(), eTO_ROOM);
                 loaded->increaseSizeBy((loaded->getSize() * (55 - dice(10, 10))) / 300);
             }
         }
@@ -365,7 +365,7 @@ unit_data *zone_follow(unit_data *u, zone_reset_cmd *cmd)
         start_following(loaded, u);
         zone_loaded_a_unit(loaded);
 
-        act("$1n has arrived.", A_HIDEINV, loaded, cActParameter(), cActParameter(), TO_ROOM);
+        act("$1n has arrived.", eA_HIDEINV, loaded, cActParameter(), cActParameter(), eTO_ROOM);
         if (loaded)
         {
             dil_loadtime_activate(loaded);
@@ -462,10 +462,13 @@ bool zone_is_empty(zone_type *zone)
     return TRUE;
 }
 
-/* Check if any zones needs updating */
+/* Check if the zone pointed to by *p1 is due for a zone reset */
 void zone_event(void *p1, void *p2)
 {
     zone_type *zone = (zone_type *)p1;
+
+    if (zone->getResetMode() == RESET_NEVER)
+        return;
 
     if (zone->getResetMode() != RESET_IFEMPTY || zone_is_empty(zone))
     {

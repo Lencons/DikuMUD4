@@ -27,12 +27,7 @@
 #include <cstdio>
 #include <cstdlib>
 
-#define PRACTICE_COST_LEVEL (25)
-
-#define TEACH_ABILITIES 0
-#define TEACH_SPELLS 1
-#define TEACH_SKILLS 2
-#define TEACH_WEAPONS 3
+#define PRACTICE_COST_LEVEL (25)  // At what player level does it cost gold to train
 
 /* You can practice a low cost skill 3 times per level. I.e. gain 3 ability in a prime stat.
  * meaning you could have 90 in an ability in 30 levels. Or you can have 90 skill in 15 levels.
@@ -132,6 +127,80 @@ int practice_skill_gain(int skill)
         return 1;
     }
 }
+
+
+
+//
+// Given a profession's profession and race cost, return the modification to the  potential of the ability / skill / spell / weapon
+// I.e. 100 + mod is the potential
+//
+int max_skill_mod(int professionBonus, int raceBonus)
+{
+    int nCost = professionBonus + raceBonus;
+
+    if (nCost == 0)
+    {
+        return -20; // 80 max
+    }
+    else if (nCost == 1)
+    {
+        return -10; // 90 max
+    }
+    else if (nCost == 2)
+    {
+        return 0; // 100 max
+    }
+    else if (nCost == 3)
+    {
+        return +5; // 105 max
+    }
+    else if (nCost == 4)
+    {
+        return +8; // 108 max
+    }
+    else if (nCost >= 5)
+    {
+        return 10 + nCost - 5; // 110 max for 5, 111 max for 6, etc.
+    }
+    else if (nCost == -1)
+    {
+        return -30; // 70 max
+    }
+    else if (nCost == -2)
+    {
+        return -40; // 60 max
+    }
+    else if (nCost == -3)
+    {
+        return -50; // 50 max
+    }
+    else if (nCost == -4)
+    {
+        return -60; // 40 max
+    }
+    else if (nCost == -5)
+    {
+        return -70; // 30 max
+    }
+    else if (nCost == -6)
+    {
+        return -85; // 15 max
+    }
+    else if (nCost <= -7)
+    {
+        return -100; // 0 max
+    }
+
+    // We should never get here
+    return -100;
+}
+
+// As max_skill_mod but adds 100
+int max_skill_limit(int professionBonus, int raceBonus)
+{
+    return 100 + max_skill_mod(professionBonus, raceBonus);
+}
+
 
 // cost: is the profession cost for this skill/ability, e.g. +2.
 // racemodifier: is the race modifier for this skill/ability, e.g. +3
@@ -317,23 +386,30 @@ const char *trainrestricted(unit_data *pupil, profession_cost *cost_entry, int m
 
 void info_show_one(unit_data *teacher,
                    unit_data *pupil,
-                   ubit8 current_points,
-                   ubit8 max_level,
-                   int next_point,
-                   int gold,
-                   int lvl,
-                   const char *text,
+                   skill_teach_type *teaches_skills,
+                   int teachesSkillsIndex,
+                   pc_train_values *pTrainValues,
+                   skill_collection *pColl,
                    int indent,
-                   ubit8 isleaf,
-                   int min_level,
-                   profession_cost *cost_entry,
                    std::vector<std::pair<int, std::string>> &vect,
                    const char *pGuildName)
 {
+    int current_points = pTrainValues->values[teaches_skills[teachesSkillsIndex].node];
+    int lvl = pTrainValues->lvl[teaches_skills[teachesSkillsIndex].node];
+    const char *text = pColl->text[teaches_skills[teachesSkillsIndex].node];
+    profession_cost *cost_entry = &pColl->prof_table[teaches_skills[teachesSkillsIndex].node];
+    ubit8 isleaf = TREE_ISLEAF(pColl->tree, teaches_skills[teachesSkillsIndex].node);
+    int gold = gold_cost(pupil, &teaches_skills[teachesSkillsIndex], pTrainValues->values[teaches_skills[teachesSkillsIndex].node]);
+    int next_point = actual_cost(pColl->prof_table[teaches_skills[teachesSkillsIndex].node].getProfessionBonus(pupil, pColl->teachtype),
+                                 pColl->racial[CHAR_RACE(pupil)][teaches_skills[teachesSkillsIndex].node],
+                                 pTrainValues->lvl[teaches_skills[teachesSkillsIndex].node],
+                                 PC_VIRTUAL_LEVEL(pupil));
+    int maxPersonalPotential = pColl->max_skill_limit(pupil, teaches_skills[teachesSkillsIndex].node);
+
     if (isleaf)
     {
         const char *req = nullptr;
-        req = trainrestricted(pupil, cost_entry, min_level, pGuildName);
+        req = trainrestricted(pupil, cost_entry, teaches_skills[teachesSkillsIndex].min_glevel, pGuildName);
 
         if (*req)
         {
@@ -342,10 +418,14 @@ void info_show_one(unit_data *teacher,
             return;
         }
 
-        if (current_points >= max_level)
+        if (current_points >= teaches_skills[teachesSkillsIndex].max_skill)
         {
             auto str =
-                diku::format_to_str("<div class='ca'>%s%3d%% %-20s [Teacher at max]</div><br/>", spc(4 * indent), current_points, text);
+                diku::format_to_str("<div class='ca'>%s%3d%% %-20s [Teacher at max (%d%%). You are at %d%% of your potential %d%%]</div><br/>",
+                                    spc(4 * indent), current_points, text, 
+                                    teaches_skills[teachesSkillsIndex].max_skill,
+                                    current_points,
+                                    maxPersonalPotential);
             vect.push_back(std::make_pair(1002, str));
             return;
         }
@@ -370,7 +450,7 @@ void info_show_one(unit_data *teacher,
                                                current_points,
                                                text,
                                                current_points,
-                                               max_level,
+                                               maxPersonalPotential, // teaches_skills[teachesSkillsIndex].max_skill,
                                                next_point,
                                                money_string(money_round(TRUE, gold, currency, 1), currency, FALSE),
                                                std::string(lvl, '*').c_str(),
@@ -411,7 +491,6 @@ void info_show_roots(unit_data *teacher,
                      const char *pGuildName)
 {
     int i = 0;
-    int cost = 0;
     std::vector<std::pair<int, std::string>> vect;
 
     for (i = 0; teaches_skills[i].node != -1; i++)
@@ -419,23 +498,13 @@ void info_show_roots(unit_data *teacher,
         if ((!TREE_ISROOT(pColl->tree, teaches_skills[i].node) && !TREE_ISLEAF(pColl->tree, teaches_skills[i].node)) ||
             ((TREE_ISROOT(pColl->tree, teaches_skills[i].node) && TREE_ISLEAF(pColl->tree, teaches_skills[i].node))))
         {
-            cost = actual_cost(pColl->prof_table[teaches_skills[i].node].profession_cost[PC_PROFESSION(pupil)],
-                               pColl->racial[CHAR_RACE(pupil)][teaches_skills[i].node],
-                               pTrainValues->lvl[teaches_skills[i].node],
-                               PC_VIRTUAL_LEVEL(pupil));
-
             info_show_one(teacher,
                           pupil,
-                          pTrainValues->values[teaches_skills[i].node],
-                          teaches_skills[i].max_skill,
-                          cost,
-                          gold_cost(pupil, &teaches_skills[i], pTrainValues->values[teaches_skills[i].node]),
-                          pTrainValues->lvl[teaches_skills[i].node],
-                          pColl->text[teaches_skills[i].node],
+                          teaches_skills,
+                          i,
+                          pTrainValues,
+                          pColl,
                           0,
-                          TREE_ISLEAF(pColl->tree, teaches_skills[i].node),
-                          teaches_skills[i].min_glevel,
-                          &pColl->prof_table[teaches_skills[i].node],
                           vect,
                           pGuildName);
         }
@@ -467,30 +536,19 @@ void info_show_leaves(unit_data *teacher,
                       const char *pGuildName)
 {
     int i = 0;
-    int cost = 0;
     std::vector<std::pair<int, std::string>> vect;
 
     for (i = 0; teaches_skills[i].node != -1; i++)
     {
         if (TREE_ISLEAF(pColl->tree, teaches_skills[i].node))
         {
-            cost = actual_cost(pColl->prof_table[teaches_skills[i].node].profession_cost[PC_PROFESSION(pupil)],
-                               pColl->racial[CHAR_RACE(pupil)][teaches_skills[i].node],
-                               pTrainValues->lvl[teaches_skills[i].node],
-                               PC_VIRTUAL_LEVEL(pupil));
-
             info_show_one(teacher,
                           pupil,
-                          pTrainValues->values[teaches_skills[i].node],
-                          teaches_skills[i].max_skill,
-                          cost,
-                          gold_cost(pupil, &teaches_skills[i], pTrainValues->values[teaches_skills[i].node]),
-                          pTrainValues->lvl[teaches_skills[i].node],
-                          pColl->text[teaches_skills[i].node],
+                          teaches_skills,
+                          i,
+                          pTrainValues,
+                          pColl,
                           0,
-                          TREE_ISLEAF(pColl->tree, teaches_skills[i].node),
-                          teaches_skills[i].min_glevel,
-                          &pColl->prof_table[teaches_skills[i].node],
                           vect,
                           pGuildName);
         }
@@ -528,7 +586,6 @@ void info_one_skill(unit_data *teacher,
     int indent = 0;
     int i = 0;
     int j = 0;
-    int cost = 0;
     indent = 0;
     std::vector<std::pair<int, std::string>> vect;
 
@@ -553,23 +610,13 @@ void info_one_skill(unit_data *teacher,
     if (!TREE_ISLEAF(pColl->tree, teaches_skills[teach_index].node))
     {
         i = teaches_skills[teach_index].node;
-        cost = actual_cost(pColl->prof_table[i].profession_cost[PC_PROFESSION(pupil)],
-                           pColl->racial[CHAR_RACE(pupil)][i],
-                           pTrainValues->lvl[i],
-                           PC_VIRTUAL_LEVEL(pupil));
-
         info_show_one(teacher,
                       pupil,
-                      pTrainValues->values[i],
-                      teaches_skills[teach_index].max_skill,
-                      cost,
-                      gold_cost(pupil, &teaches_skills[teach_index], pTrainValues->values[i]),
-                      pTrainValues->lvl[i],
-                      pColl->text[i],
+                      teaches_skills,
+                      teach_index,
+                      pTrainValues,
+                      pColl,
                       indent++,
-                      TREE_ISLEAF(pColl->tree, teaches_skills[teach_index].node),
-                      teaches_skills[teach_index].min_glevel,
-                      &pColl->prof_table[i],
                       vect,
                       pGuildName);
 
@@ -581,22 +628,13 @@ void info_one_skill(unit_data *teacher,
             {
                 /* It is a child */
                 i = teaches_skills[j].node;
-                cost = actual_cost(pColl->prof_table[i].profession_cost[PC_PROFESSION(pupil)],
-                                   pColl->racial[CHAR_RACE(pupil)][i],
-                                   pTrainValues->lvl[i],
-                                   PC_VIRTUAL_LEVEL(pupil));
                 info_show_one(teacher,
                               pupil,
-                              pTrainValues->values[i],
-                              teaches_skills[j].max_skill,
-                              cost,
-                              gold_cost(pupil, &teaches_skills[j], pTrainValues->values[i]),
-                              pTrainValues->lvl[i],
-                              pColl->text[i],
+                              teaches_skills,
+                              j,
+                              pTrainValues,
+                              pColl,
                               indent,
-                              TREE_ISLEAF(pColl->tree, teaches_skills[j].node),
-                              teaches_skills[j].min_glevel,
-                              &pColl->prof_table[i],
                               vect,
                               pGuildName);
             }
@@ -611,23 +649,13 @@ void info_one_skill(unit_data *teacher,
             {
                 /* It is a child */
                 i = teaches_skills[j].node;
-                cost = actual_cost(pColl->prof_table[i].profession_cost[PC_PROFESSION(pupil)],
-                                   pColl->racial[CHAR_RACE(pupil)][i],
-                                   pTrainValues->lvl[i],
-                                   PC_VIRTUAL_LEVEL(pupil));
-
                 info_show_one(teacher,
                               pupil,
-                              pTrainValues->values[i],
-                              teaches_skills[j].max_skill,
-                              cost,
-                              gold_cost(pupil, &teaches_skills[j], pTrainValues->values[i]),
-                              pTrainValues->lvl[i],
-                              pColl->text[i],
+                              teaches_skills,
+                              j,
+                              pTrainValues,
+                              pColl,
                               indent,
-                              TREE_ISLEAF(pColl->tree, teaches_skills[j].node),
-                              teaches_skills[j].min_glevel,
-                              &pColl->prof_table[i],
                               vect,
                               pGuildName);
             }
@@ -770,7 +798,7 @@ int practice(unit_data *teacher,
 
     if (pckt->teaches[teach_index].max_skill <= pTrainValues->values[pckt->teaches[teach_index].node])
     {
-        act(pckt->msgs.teacher_not_good_enough, A_SOMEONE, teacher, cActParameter(), pupil, TO_VICT);
+        act(pckt->msgs.teacher_not_good_enough, eA_SOMEONE, teacher, cActParameter(), pupil, eTO_VICT);
         return TRUE;
     }
 
@@ -788,7 +816,27 @@ int practice(unit_data *teacher,
         return TRUE;
     }
 
-    cost = actual_cost(pColl->prof_table[pckt->teaches[teach_index].node].profession_cost[PC_PROFESSION(pupil)],
+    // 
+    // Calculate the character's personal potential as a function of race & profession
+    //
+    int ms = pColl->max_skill_limit(pupil, pckt->teaches[teach_index].node);
+    if (pTrainValues->values[pckt->teaches[teach_index].node] >= ms)
+    {
+        // This is a temporary bypass. Characters that has this $value will not be affected by the personal max
+        // for the time being.
+        if (PC_INFO(pupil).find_raw("$gooffix") == nullptr)
+        {
+            act("$1n tells you, 'You've reached your character's full potential for $2t.'",
+                eA_ALWAYS,
+                teacher,
+                pColl->text[pckt->teaches[teach_index].node],
+                pupil,
+                eTO_VICT);
+            return TRUE;
+        }
+    }
+
+    cost = actual_cost(pColl->prof_table[pckt->teaches[teach_index].node].getProfessionBonus(pupil, pColl->teachtype),
                        pColl->racial[CHAR_RACE(pupil)][pckt->teaches[teach_index].node],
                        pTrainValues->lvl[pckt->teaches[teach_index].node],
                        PC_VIRTUAL_LEVEL(pupil));
@@ -796,11 +844,11 @@ int practice(unit_data *teacher,
     if (cost == 0)
     {
         act("$1n tells you, 'You've learned all you can about $2t at this level.'",
-            A_ALWAYS,
+            eA_ALWAYS,
             teacher,
             pColl->text[pckt->teaches[teach_index].node],
             pupil,
-            TO_VICT);
+            eTO_VICT);
         return TRUE;
     }
 
@@ -809,7 +857,7 @@ int practice(unit_data *teacher,
     if (*pTrainValues->practice_points < cost)
     {
         auto str = diku::format_to_str(pckt->msgs.not_enough_points, cost);
-        act(str.c_str(), A_SOMEONE, teacher, cActParameter(), pupil, TO_VICT);
+        act(str.c_str(), eA_SOMEONE, teacher, cActParameter(), pupil, eTO_VICT);
         if (CHAR_LEVEL(pupil) == START_LEVEL)
         {
             send_to_char("Beginners note: Go on adventure and gain a level.<br/>"
@@ -821,7 +869,7 @@ int practice(unit_data *teacher,
 
     if (pupil_magic(pupil))
     {
-        act(pckt->msgs.not_pure, A_SOMEONE, teacher, cActParameter(), pupil, TO_VICT);
+        act(pckt->msgs.not_pure, eA_SOMEONE, teacher, cActParameter(), pupil, eTO_VICT);
         return TRUE;
     }
 
@@ -837,7 +885,7 @@ int practice(unit_data *teacher,
         if (!char_can_afford(pupil, amt, currency))
         {
             auto str = diku::format_to_str(pckt->msgs.not_enough_gold, money_string(amt, local_currency(pupil), TRUE));
-            act(str.c_str(), A_SOMEONE, teacher, cActParameter(), pupil, TO_VICT);
+            act(str.c_str(), eA_SOMEONE, teacher, cActParameter(), pupil, eTO_VICT);
             return TRUE;
         }
 
@@ -846,7 +894,7 @@ int practice(unit_data *teacher,
 
     practice_base(pckt->type, pckt, pTrainValues, teach_index, cost);
 
-    act("You finish training $2t with $1n.", A_ALWAYS, teacher, pColl->text[pckt->teaches[teach_index].node], pupil, TO_VICT);
+    act("You finish training $2t with $1n.", eA_ALWAYS, teacher, pColl->text[pckt->teaches[teach_index].node], pupil, eTO_VICT);
 
     return FALSE;
 }
@@ -921,7 +969,7 @@ int auto_train(int type, unit_data *pupil, skill_collection *pColl, pc_train_val
                 continue;
             }
 
-            cost = actual_cost(pColl->prof_table[nodeidx].profession_cost[PC_PROFESSION(pupil)],
+            cost = actual_cost(pColl->prof_table[nodeidx].getProfessionBonus(pupil, pColl->teachtype),
                                pColl->racial[CHAR_RACE(pupil)][nodeidx],
                                pTrainValues->lvl[nodeidx],
                                PC_VIRTUAL_LEVEL(pupil));
@@ -1008,7 +1056,7 @@ int auto_train(int type, unit_data *pupil, skill_collection *pColl, pc_train_val
                 if (!char_can_afford(pupil, amt, currency))
                 {
                     auto str = diku::format_to_str(pckt->msgs.not_enough_gold, money_string(amt, local_currency(pupil), TRUE));
-                    act(str.c_str(), A_ALWAYS, pckt->teacher, cActParameter(), pupil, TO_VICT);
+                    act(str.c_str(), eA_ALWAYS, pckt->teacher, cActParameter(), pupil, eTO_VICT);
                     continue;
                 }
 
@@ -1019,7 +1067,7 @@ int auto_train(int type, unit_data *pupil, skill_collection *pColl, pc_train_val
 
             practice_base(type, pckt, pTrainValues, teach_index, cost);
 
-            act("You train $2t.", A_ALWAYS, pupil, pColl->text[nodeidx], cActParameter(), TO_CHAR);
+            act("You train $2t.", eA_ALWAYS, pupil, pColl->text[nodeidx], cActParameter(), eTO_CHAR);
         }
     }
 
@@ -1137,7 +1185,7 @@ int teach_basis(spec_arg *sarg, teach_packet *pckt)
 
     if (!CHAR_IS_READY(sarg->owner))
     {
-        act("$1n is not capable of teaching now.", A_SOMEONE, sarg->owner, cActParameter(), sarg->activator, TO_VICT);
+        act("$1n is not capable of teaching now.", eA_SOMEONE, sarg->owner, cActParameter(), sarg->activator, eTO_VICT);
         return SFR_BLOCK;
     }
 
@@ -1163,7 +1211,7 @@ int teach_basis(spec_arg *sarg, teach_packet *pckt)
         }
         else
         {
-            act("$1n asks, 'What do you wish to practice, $3n?'", A_SOMEONE, sarg->owner, cActParameter(), sarg->activator, TO_VICT);
+            act("$1n asks, 'What do you wish to practice, $3n?'", eA_SOMEONE, sarg->owner, cActParameter(), sarg->activator, eTO_VICT);
             if (CHAR_LEVEL(sarg->activator) == START_LEVEL)
             {
                 send_to_char("Beginners note: Try the 'info' command NOW.<br/>", sarg->activator);
@@ -1238,14 +1286,14 @@ int teach_basis(spec_arg *sarg, teach_packet *pckt)
 
     if (index == -1)
     {
-        act(pckt->msgs.unknown_skill, A_SOMEONE, sarg->owner, cActParameter(), sarg->activator, TO_VICT);
+        act(pckt->msgs.unknown_skill, eA_SOMEONE, sarg->owner, cActParameter(), sarg->activator, eTO_VICT);
         return SFR_BLOCK;
     }
 
     index = teaches_index(pckt->teaches, index);
     if (index == -1)
     {
-        act(pckt->msgs.no_teaching, A_SOMEONE, sarg->owner, cActParameter(), sarg->activator, TO_VICT);
+        act(pckt->msgs.no_teaching, eA_SOMEONE, sarg->owner, cActParameter(), sarg->activator, eTO_VICT);
         return SFR_BLOCK;
     }
 
@@ -1332,68 +1380,6 @@ const char *get_next_str(const char *data, char *dest)
     *dest = 0;
 
     return data;
-}
-
-//
-// Given a profession's cost nCost what is the maximum delta to 100.
-//
-int max_skill_mod(int nCost)
-{
-    if (nCost == 0)
-    {
-        return -20; // 80 max
-    }
-    else if (nCost == 1)
-    {
-        return -10; // 90 max
-    }
-    else if (nCost == 2)
-    {
-        return 0; // 100 max
-    }
-    else if (nCost == 3)
-    {
-        return +5; // 105 max
-    }
-    else if (nCost == 4)
-    {
-        return +8; // 108 max
-    }
-    else if (nCost >= 5)
-    {
-        return 10 + nCost - 5; // 110 max for 5, 111 max for 6, etc.
-    }
-    else if (nCost == -1)
-    {
-        return -30; // 70 max
-    }
-    else if (nCost == -2)
-    {
-        return -40; // 60 max
-    }
-    else if (nCost == -3)
-    {
-        return -50; // 50 max
-    }
-    else if (nCost == -4)
-    {
-        return -60; // 40 max
-    }
-    else if (nCost == -5)
-    {
-        return -70; // 30 max
-    }
-    else if (nCost == -6)
-    {
-        return -85; // 15 max
-    }
-    else if (nCost <= -7)
-    {
-        return -100; // 0 max
-    }
-
-    // We should never get here
-    return -100;
 }
 
 // level, max-train, <skill>, min_cost_per_point (gold), max_cost_per_point (gold), {costs}, 0
@@ -1498,13 +1484,13 @@ int teach_init(spec_arg *sarg)
                 // Copy in all abilities for profession
                 for (n = 0; packet->text[n] != nullptr; n++)
                 {
-                    if ((g_AbiColl.prof_table[n].profession_cost[nProfession] >= -3) && !g_AbiColl.tree[n].bAutoTeacherNoAdd)
+                    if ((g_AbiColl.prof_table[n].getProfessionBonus(nProfession) >= -3) && !g_AbiColl.tree[n].bAutoTeacherNoAdd)
                     {
                         a_skill.min_glevel = 0;
-                        a_skill.max_skill = 100 + max_skill_mod(g_AbiColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_skill = max_skill_limit(g_AbiColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         a_skill.node = n;
                         a_skill.min_cost_per_point = 10;
-                        a_skill.max_cost_per_point = 10000 + -1000 * max_skill_mod(g_AbiColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_cost_per_point = 10000 + -1000 * max_skill_mod(g_AbiColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         packet->teaches[count - 1] = a_skill;
 
                         count++;
@@ -1526,13 +1512,13 @@ int teach_init(spec_arg *sarg)
                 // Copy in all abilities for profession
                 for (n = 0; packet->text[n] != nullptr; n++)
                 {
-                    if (g_SkiColl.prof_table[n].profession_cost[nProfession] >= -3 && !g_SkiColl.tree[n].bAutoTeacherNoAdd)
+                    if (g_SkiColl.prof_table[n].getProfessionBonus(nProfession) >= -3 && !g_SkiColl.tree[n].bAutoTeacherNoAdd)
                     {
                         a_skill.min_glevel = 0;
-                        a_skill.max_skill = 100 + max_skill_mod(g_SkiColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_skill = max_skill_limit(g_SkiColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         a_skill.node = n;
                         a_skill.min_cost_per_point = 10;
-                        a_skill.max_cost_per_point = 10000 + -1000 * max_skill_mod(g_SkiColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_cost_per_point = 10000 + -1000 * max_skill_mod(g_SkiColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         packet->teaches[count - 1] = a_skill;
 
                         count++;
@@ -1554,13 +1540,13 @@ int teach_init(spec_arg *sarg)
                 // Copy in all abilities for profession
                 for (n = 0; packet->text[n] != nullptr; n++)
                 {
-                    if (g_SplColl.prof_table[n].profession_cost[nProfession] >= -3 && !g_SplColl.tree[n].bAutoTeacherNoAdd)
+                    if (g_SplColl.prof_table[n].getProfessionBonus(nProfession) >= -3 && !g_SplColl.tree[n].bAutoTeacherNoAdd)
                     {
                         a_skill.min_glevel = 0;
-                        a_skill.max_skill = 100 + max_skill_mod(g_SplColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_skill = max_skill_limit(g_SplColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         a_skill.node = n;
                         a_skill.min_cost_per_point = 10;
-                        a_skill.max_cost_per_point = 10000 + -1000 * max_skill_mod(g_SplColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_cost_per_point = 10000 + -1000 * max_skill_mod(g_SplColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         packet->teaches[count - 1] = a_skill;
 
                         count++;
@@ -1582,14 +1568,14 @@ int teach_init(spec_arg *sarg)
                 // Copy in all abilities for profession
                 for (n = 0; packet->text[n] != nullptr; n++)
                 {
-                    if (g_WpnColl.prof_table[n].profession_cost[nProfession] >= -3 && !g_WpnColl.tree[n].bAutoTeacherNoAdd)
+                    if (g_WpnColl.prof_table[n].getProfessionBonus(nProfession) >= -3 && !g_WpnColl.tree[n].bAutoTeacherNoAdd)
                     {
                         a_skill.min_glevel = 0;
-                        a_skill.max_skill = 100 + max_skill_mod(g_WpnColl.prof_table[n].profession_cost[nProfession]);
+                        a_skill.max_skill = max_skill_limit(g_WpnColl.prof_table[n].getProfessionBonus(nProfession), 0);
                         a_skill.node = n;
                         a_skill.min_cost_per_point = 1;
                         a_skill.max_cost_per_point =
-                            MAX(1, 1000 + -100 * max_skill_mod(g_WpnColl.prof_table[n].profession_cost[nProfession]));
+                            MAX(1, 1000 + -100 * max_skill_mod(g_WpnColl.prof_table[n].getProfessionBonus(nProfession), 0));
                         packet->teaches[count - 1] = a_skill;
 
                         count++;

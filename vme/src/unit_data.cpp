@@ -4,6 +4,7 @@
 #include "db.h"
 #include "db_file.h"
 #include "handler.h"
+#include "json_helper.h"
 #include "mobact.h"
 #include "npc_data.h"
 #include "obj_data.h"
@@ -17,23 +18,23 @@
     #include "vmc/vmc_process.h"
 #endif
 
-unit_data *new_unit_data(ubit8 type)
+unit_data *new_unit_data(ubit8 type, file_index_type *fi)
 {
     if (type == UNIT_ST_ROOM)
     {
-        return new EMPLACE(room_data) room_data;
+        return new EMPLACE(room_data) room_data(fi);
     }
     else if (type == UNIT_ST_OBJ)
     {
-        return new EMPLACE(obj_data) obj_data;
+        return new EMPLACE(obj_data) obj_data(fi);
     }
     else if (type == UNIT_ST_PC)
     {
-        return new EMPLACE(pc_data) pc_data;
+        return new EMPLACE(pc_data) pc_data(fi);
     }
     else if (type == UNIT_ST_NPC)
     {
-        return new EMPLACE(npc_data) npc_data;
+        return new EMPLACE(npc_data) npc_data(fi);
     }
     else
     {
@@ -42,7 +43,7 @@ unit_data *new_unit_data(ubit8 type)
     return nullptr; // Need to avoid warning on Git actions.
 }
 
-unit_data::unit_data(ubit8 unit_type)
+unit_data::unit_data(ubit8 type, file_index_type *fi)
     : m_func{nullptr}
     , m_affected{nullptr}
     , m_fi{nullptr}
@@ -58,7 +59,7 @@ unit_data::unit_data(ubit8 unit_type)
     , m_weight{0}
     , m_capacity{0}
     , m_size{0}
-    , m_status{unit_type}
+    , m_status{type}
     , m_open_flags{0}
     , m_open_diff{0}
     , m_light{0}
@@ -70,6 +71,10 @@ unit_data::unit_data(ubit8 unit_type)
     , m_hp{0}
     , m_alignment{0}
 {
+    assert((type == UNIT_ST_ROOM) || (type == UNIT_ST_OBJ) || (type == UNIT_ST_PC) || (type == UNIT_ST_NPC));
+    // assert(fi);  -- Ideally some day it will be impossible to create a unit without a file_index
+    m_status = type;
+    this->setFileIndex(fi);
 }
 
 unit_data::~unit_data()
@@ -82,6 +87,12 @@ unit_data::~unit_data()
     assert(m_next == nullptr);
     assert(g_unit_list != this);
 #endif
+
+    if (m_fi)
+    {
+        m_fi->DecrementNumInMemory();
+        m_fi = nullptr;
+    }
 
     if (m_key)
     {
@@ -127,19 +138,6 @@ unit_data::~unit_data()
     {
         assert(FALSE);
     }
-}
-
-void unit_data::set_fi(file_index_type *f)
-{
-    assert(f);
-
-    if (m_fi)
-    {
-        slog(LOG_ALL, 0, "ERROR: FI was already set. This shouldn't happen");
-    }
-
-    m_fi = f;
-    m_fi->IncrementNumInMemory();
 }
 
 std::string unit_data::json()
@@ -244,7 +242,7 @@ unit_data *unit_data::copy()
     unit_data *u = nullptr;
     int x = 0;
 
-    u = new_unit_data(m_status);
+    u = new_unit_data(m_status, m_fi);
 
     CByteBuffer abuf;
     CByteBuffer fbuf;
@@ -266,7 +264,7 @@ unit_data *unit_data::copy()
     u->m_hp = m_hp;
     u->m_alignment = m_alignment;
     u->m_key = str_dup(m_key);
-    u->set_fi(m_fi);
+    u->setFileIndex(m_fi);
 
     bwrite_affect(&abuf, m_affected);
     bread_affect(&abuf, u, UNIT_VERSION);
@@ -423,9 +421,23 @@ const file_index_type *unit_data::getFileIndex() const
     return m_fi;
 }
 
-void unit_data::setFileIndex(file_index_type *value)
+void unit_data::setFileIndex(file_index_type *fi)
 {
-    m_fi = value;
+    if (fi == nullptr)
+        return; // Ideally some day nullptr will not be allowed
+
+    if (m_fi)
+    {
+        slog(LOG_ALL, 0, "ERROR: FI was already set. This shouldn't happen. Overwriting");
+    }
+
+    if (fi->getType() != this->m_status)
+    {
+        slog(LOG_ALL, 0, "ERROR: FI set but the FI %s@%s type isn't the same as the unit type.", fi->getName(), fi->getZone()->getName());
+    }
+
+    m_fi = fi;
+    m_fi->IncrementNumInMemory();
 }
 
 const char *unit_data::getKey() const
@@ -871,4 +883,49 @@ const extra_list &unit_data::getExtraList() const
 extra_list &unit_data::getExtraList()
 {
     return m_extra;
+}
+
+void unit_data::toJSON(rapidjson::PrettyWriter<rapidjson::StringBuffer> &writer) const
+{
+    writer.StartObject();
+    {
+        ////////////////////////////////////////////////////////
+        json::write_unit_id_kvp("id", this, writer);
+
+        json::write_object_value_kvp("names", m_names, writer);
+        json::write_object_pointer_kvp("func", m_func, writer);
+        json::write_object_pointer_kvp("affected", m_affected, writer);
+        json::write_object_pointer_kvp("fi", m_fi, writer);
+        json::write_char_pointer_kvp("key", m_key, writer);
+        json::write_unit_id_kvp("outside", m_outside, writer);
+        json::write_unit_id_kvp("inside", m_inside, writer);
+        json::write_unit_id_kvp("next", m_next, writer);
+        json::write_unit_id_kvp("gnext", m_gnext, writer);
+        json::write_unit_id_kvp("gprevious", m_gprevious, writer);
+        json::write_kvp("manipulate", m_manipulate, writer);
+        std::string bits;
+        json::write_kvp("flags", sprintbit(bits, m_flags, g_unit_flags), writer);
+        json::write_kvp("base_weight", m_base_weight, writer);
+        json::write_kvp("weight", m_weight, writer);
+        json::write_kvp("capacity", m_capacity, writer);
+        json::write_kvp("size", m_size, writer);
+        json::write_kvp("status", m_status, writer);
+        json::write_kvp("open_flags", sprintbit(bits, m_open_flags, g_unit_open_flags), writer);
+        json::write_kvp("open_diff", m_open_diff, writer);
+        json::write_kvp("light", m_light, writer);
+        json::write_kvp("bright", m_bright, writer);
+        json::write_kvp("illum", m_illum, writer);
+        json::write_kvp("chars", m_chars, writer);
+        json::write_kvp("minv", m_minv, writer);
+        json::write_kvp("max_hp", m_max_hp, writer);
+        json::write_kvp("hp", m_hp, writer);
+        json::write_kvp("alignment", m_alignment, writer);
+        json::write_kvp("title", m_title, writer);
+        json::write_kvp("out_descr", m_out_descr, writer);
+        json::write_kvp("in_desc", m_in_descr, writer);
+
+        writer.String("extra");
+        m_extra.toJSON(writer);
+    }
+    writer.EndObject();
 }
