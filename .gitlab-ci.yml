@@ -25,8 +25,7 @@ Compile:
   tags:
     - Debian
   script:
-    # cmake -DDIKU_STATIC=1 .
-    - cmake .
+    - cmake -DDIKU_STATIC=1 .
     - make all -j12
 
   artifacts:
