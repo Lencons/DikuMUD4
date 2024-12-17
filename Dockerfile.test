@@ -7,7 +7,7 @@ RUN apt-get update && \
     apt-get -y upgrade
 
 # The following packages are included specifically for testing:
-RUN apt-get install -y inetutils-telnet less vim curl wget
+RUN apt-get install -y inetutils-telnet less vim curl wget procps
 
 WORKDIR $VME_ROOT
 
