@@ -3,7 +3,6 @@ stages:
   - Test
   - Package
   - Release
-  - Deploy
 
 variables:
   # Docker Image values
@@ -27,7 +26,7 @@ Compile:
     - Debian
   script:
     # cmake -DDIKU_STATIC=1 .
-    - cmake -DDIKU_STATIC=1 .
+    - cmake .
     - make all -j12
 
   artifacts:
@@ -102,21 +101,6 @@ DikuMUD-Test:
     DOCKER_ARGS: '-f Dockerfile.test'
 
 
-pages:
-  stage: Package
-  script:
-    # TODO: We need to actually build the documentation here ideally.
-    #
-    # Copy documentation to pages (clean out any existing documentation first)
-    - rm -rf public
-    - mv -f docs public
-  artifacts:
-    paths:
-    - public
-  rules:
-    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
-
-
 ##
 ## STAGE: Release Jobs
 ##
@@ -188,3 +172,19 @@ DikuMUD-tag:
   variables:
     BUILD_TAG: '$CI_COMMIT_SHA'
     RELEASE_TAG: '$CI_COMMIT_REF_NAME'
+
+
+Pages Docs:
+  stage: Release
+  script:
+    # TODO: We need to actually build the documentation here ideally.
+    #
+    # Copy documentation to pages (clean out any existing documentation first)
+    - rm -rf public
+    - mv -f docs public
+  pages: true
+  artifacts:
+    paths:
+    - public
+  rules:
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
