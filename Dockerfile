@@ -1,10 +1,13 @@
-FROM ubuntu:22.04
+FROM debian:bookworm
 
 # Configure DikuMUD installation variables.
 ENV VME_ROOT=/vme
 
 RUN apt-get update && \
     apt-get -y upgrade
+
+# The following packages are included to help managed the operational server.
+RUN apt-get install -y inetutils-telnet less vim curl wget
 
 WORKDIR $VME_ROOT
 
