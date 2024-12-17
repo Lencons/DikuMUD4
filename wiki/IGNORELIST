@@ -1,0 +1,5 @@
+#One file per line. Don't put whitespace here.
+IGNORELIST
+.git/
+Home.md
+_Sidebar.md

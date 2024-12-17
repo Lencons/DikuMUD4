@@ -1,0 +1,1 @@
+<div class="mw-parser-output"><div class="redirectMsg"><p>Redirect to:</p><ul class="redirectText"><li><a href="./Manual:DIL-Manual" title="Manual:DIL Manual">Manual:DIL Manual</a></li></ul></div></div>
