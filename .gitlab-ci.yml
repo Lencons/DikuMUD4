@@ -37,7 +37,7 @@ Compile:
       - vme/etc/
       - vme/include/
       - vme/lib/
-      - vme/zones/*.zon
+      - vme/zone/*.zon
       - vme/www/
 
 

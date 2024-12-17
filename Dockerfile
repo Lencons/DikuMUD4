@@ -16,11 +16,11 @@ COPY vme/bin/           bin/
 COPY vme/etc/           etc/
 COPY vme/include/       include/
 COPY vme/lib/           lib/
-COPY vme/zones/*.zon    zones/
+COPY vme/zone/*.zon     zone/
 COPY vme/www/           www/
 
 # Compile the Zone files.
-RUN cd zones && \
+RUN cd zone && \
     ../bin/vmc -I../include/ -d../etc/ *.zon
 
 # Create directories to which persistent storage will be mounted
