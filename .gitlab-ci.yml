@@ -174,7 +174,7 @@ DikuMUD-tag:
 
 
 Pages Docs:
-  stage: deploy
+  stage: Release
   script:
     # TODO: We need to actually build the documentation here ideally.
     #
