@@ -28,3 +28,5 @@ docs/defcomp
 docs/mplex
 docs/vmc
 docs/vme
+*.cmake
+CMakeDoxyfile.in

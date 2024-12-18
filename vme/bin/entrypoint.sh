@@ -28,7 +28,7 @@ done
 # The server currently needs to be started from the bin directory. Something that needs
 # to be looked at.
 cd bin
-$VME_ROOT/bin/vme -s $SERVER_CONFIG -l $VME_ROOT/log/vme.log &
+$VME_ROOT/bin/vme -s $VME_ROOT/etc/server.cfg -l $VME_ROOT/log/vme.log &
 $VME_ROOT/bin/mplex -p 4242 -l $VME_ROOT/log/mplex.log
 
 # keep the container alive.

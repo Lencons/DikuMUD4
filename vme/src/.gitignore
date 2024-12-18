@@ -1,1 +1,5 @@
 .vscode
+Doxyfile.vme_docs
+Doxyfile.defcomp_docs
+vmc/Doxyfile.vmc_docs
+mplex/Doxyfile.mplex_docs
