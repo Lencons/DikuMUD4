@@ -173,10 +173,12 @@ void save_player_disk(const char *pName, char *pPassword, sbit32 id, int nPlyLen
     static auto tmp_player_name{g_cServerConfig.getPlyDir() + "player.tmp"};
 
     /* Fucking shiting pissing lort! This marcel is driving me mad! */
-    assert(!file_exists(tmp_player_name));
-    pPlayerFile = fopen(tmp_player_name.c_str(), "wb");
-    assert(pPlayerFile);
+ //   assert(!file_exists(tmp_player_name));
+ //   pPlayerFile = fopen(tmp_player_name.c_str(), "wb");
+ //   assert(pPlayerFile);
 
+    pPlayerFile = fopen(PlayerFileName(pName).c_str(), "wb");
+ 
     n = fwrite(&id, sizeof(id), 1, pPlayerFile);
     assert(n == 1);
 
@@ -190,22 +192,22 @@ void save_player_disk(const char *pName, char *pPassword, sbit32 id, int nPlyLen
        disk... apparently sometimes this is not the case on marcel (disk
        full?). Anyway if that is a problem it should have been caught by
        the n == nPlyLen */
-
+/*
     if (fseek(pPlayerFile, 0L, SEEK_END))
     {
         assert(FALSE);
     }
 
     assert(ftell(pPlayerFile) == (long int)(nPlyLen + sizeof(nPlyLen) + sizeof(id)));
-
+*/
     fclose(pPlayerFile);
 
     /* Unfortunately this must be done to ensure that when the host
        crashes, it doesn't garble the player. At least then, the
        old file will remain intact. */
 
-    n = rename(tmp_player_name.c_str(), PlayerFileName(pName).c_str());
-    assert(n == 0);
+//    n = rename(tmp_player_name.c_str(), PlayerFileName(pName).c_str());
+//    assert(n == 0);
 }
 
 /* Save the player 'pc' (no inventory) */
