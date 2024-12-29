@@ -27,15 +27,15 @@ spec:
         - name: dikumud
           image: registry.core.dunbart.net/mud/dikumud4/dikumud:latest
           imagePullPolicy: Always
-#          volumeMounts:
-#            - name: dikumud-players
-#              mountPath: /vme/data/players
+          volumeMounts:
+            - name: dikumud-players
+              mountPath: /vme/data/players
           ports:
             - name: telnet
               containerPort: 4242
       imagePullSecrets:
         - name: gitlab-registry
-#      volumes:
-#        - name: dikumud-players
-#          persistentVolumeClaim:
-#            claimName: dikumud-players-pvc
+      volumes:
+        - name: dikumud-players
+          persistentVolumeClaim:
+            claimName: dikumud-players-pvc

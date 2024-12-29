@@ -26,6 +26,7 @@ spec:
       containers:
         - name: dikumud
           image: registry.core.dunbart.net/mud/dikumud4/dikumud:latest
+          imagePullPolicy: Always
           ports:
             - name: telnet
               containerPort: 4242
