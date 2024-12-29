@@ -5,12 +5,12 @@ targetCustomizations:
 - name: prod
   clusterSelector:
     matchLabels:
-      env: core
+      cluster: core
   kustomize:
     dir: overlays/production
 - name: test
   clusterSelector:
     matchLabels:
-      env: core
+      cluster: lab
   kustomize:
     dir: overlays/test
