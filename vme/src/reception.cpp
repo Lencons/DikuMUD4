@@ -342,26 +342,58 @@ void send_saves(unit_data *parent, unit_data *unit)
     }
 }
 
-const char *ContentsFileName(const char *pName)
+
+/****************************************************************************
+ * Generate the Inventory filename for a Player.
+ * 
+ * A Player's Inventory data filename is generated adding a '.inv' extension
+ * to the Players data filename.
+ * 
+ * @param player_name   Pointer to Player Inventory file name string.
+ * @return              String containing the path and filename of the
+ *                      Players Inventory data file.
+ * 
+ ****************************************************************************/
+const char *contents_filename(const char *player_name)
 {
-    static std::string Buf;
+    static std::string filename;
 
-    Buf = PlayerFileName(pName) + ".inv";
+    filename = PlayerFileName(player_name) + ".inv";
 
-    return Buf.c_str();
+    return filename.c_str();
 }
 
-/* Save all units inside 'unit' in the blk_file 'bf' as uncompressed  */
-/* if fast == 1 or compressed if fast == 0. Only OBJ's and NPC's will */
-/* be saved!                                                          */
-/* Container = 1 if container should be saved also                    */
-void basic_save_contents(const char *pFileName, unit_data *unit, int fast, int bContainer)
+
+/****************************************************************************
+ * Write player inventory data to disk.
+ * 
+ * Write Player Inventory data to the players data file on disk. This process
+ * is performed in a manner in which limits the chance of a players data
+ * becoming corrupted with the following steps:
+ *      - Generate update player inventory data in memory
+ *      - Rename any exiting Player Inventory file to a '.bak' backup
+ *      - Write out player inventory data to a new data file
+ *      - Remove the backup file
+ * If an error is encounted in any part of this process the inventoty backup
+ * file is renamed back to be the active Player data file. This ensures that
+ * no existing data is modifed as renaming will only manipluate directoy
+ * listing data.
+ * 
+ * @param inv_filename  Pointer to Player Inventory file name string.
+ * @param unit          Something....
+ * @param container     Flag to also save the container??? (non-zero)
+ * 
+ ****************************************************************************/
+void basic_save_contents(
+    const char *inv_filename,
+    unit_data *unit,
+    int bContainer)
 {
     descriptor_data *tmp_descr = nullptr;
-    FILE *pFile = nullptr;
-    char TmpName[MAX_INPUT_LENGTH + 1];
+    FILE *fp;
+    std::string tmp_filename;
 
-    fast = 1; /* MAJOR BUG IN DIFF CAUSING BAD PLAYERS! WITH TOO MUCH */
+    int fast = 1; /* MAJOR BUG IN DIFF CAUSING BAD PLAYERS! WITH TOO MUCH */
     /* INVENTORY, THE PLAYER INDEX WILL GET FUCKED UP!      */
 
     if (unit->isChar())
@@ -382,46 +414,113 @@ void basic_save_contents(const char *pFileName, unit_data *unit, int fast, int b
 
     add_units(pBuf, unit, unit, bContainer ? 1 : 0, fast);
 
-    if (unit->isChar())
-    {
+    if (unit->isChar()) {
         UCHAR(unit)->setDescriptor(tmp_descr);
     }
 
-    if (pBuf->GetLength() > 0)
-    {
-        strcpy(TmpName, ContentsFileName("aaa-inv.tmp"));
-        pFile = fopen(TmpName, "wb");
-        assert(pFile);
-        ubit32 n = pBuf->FileWrite(pFile);
-        fclose(pFile);
+    if (pBuf->GetLength() > 0) {
+
+        // Rename any existing inventory file as a backup.
+        if (file_exists(inv_filename)) {
+            tmp_filename = inv_filename;
+            tmp_filename += ".bak";
+
+            // If an existing backup exists, then we assume we are dealing with
+            // an error condition and the original backup is more valuable than
+            // the currently player file.
+            if (file_exists(tmp_filename.c_str())) {
+                slog(
+                    LOG_ALL,
+                    0,
+                    "WARNING - Player Inventory backup file already exists: %s",
+                    tmp_filename.c_str()
+                );
+                slog(
+                    LOG_ALL,
+                    0,
+                    "Deleting Player Inventory file in prefence of exisint backup: %s",
+                    inv_filename
+                );
+                std::remove(inv_filename);
+            }
+            else {
+                slog(
+                    LOG_ALL,
+                    0,
+                    "Backing up Player Inventoty file to: %s",
+                    tmp_filename.c_str()
+                );
+                std::rename(inv_filename, tmp_filename.c_str());
+            }
+        }
+
+        // Write Player Inventory data to disk.
+        fp = std::fopen(inv_filename, "wb");
+        if (!fp) {
+            slog(
+                LOG_ALL,
+                0,
+                "FATAL - Failed to open %s",
+                inv_filename
+            );
+            assert(fp);
+        }
+        ubit32 n = pBuf->FileWrite(fp);
+        fclose(fp);
 
         if (n != pBuf->GetLength())
         {
-            slog(LOG_ALL, 0, "ERROR: Only able to write %d of %d bytes for %s inventory (disk full?).", n, pBuf->GetLength(), pFileName);
+            slog(
+                LOG_ALL,
+                0,
+                "ERROR: Only able to write %d of %d bytes for %s inventory (disk full?).",
+                n, pBuf->GetLength(), inv_filename
+            );
+            std::remove(inv_filename);
+
+            if (!tmp_filename.empty()) {
+                slog(
+                    LOG_ALL,
+                    0,
+                    "Restoring backup Player Inventory data file: %s",
+                    tmp_filename.c_str()
+                );
+                std::rename(tmp_filename.c_str(), inv_filename);
+            }
         }
         else
         {
-            if (rename(TmpName, pFileName) != 0)
-            {
-                perror("rename:");
-                exit(2);
+            // If we created a backup file, clean-up.
+            if (!tmp_filename.empty()) {
+                std::remove(tmp_filename.c_str());
+                slog(
+                    LOG_ALL,
+                    0,
+                    "Player Inventoty backup file removed: %s",
+                    tmp_filename.c_str()
+                );
             }
         }
     }
 }
 
-/* Save all units inside 'unit' in the blk_file 'bf' as uncompressed  */
-/* if fast == 1 or compressed if fast == 0. Only OBJ's and NPC's will */
-/* be saved!                                                          */
-/* Container = 1 if container should be saved also                    */
-int save_contents(const char *pFileName, unit_data *unit, int fast, int bContainer)
+
+/****************************************************************************
+ * Save player inventory.
+ * 
+ * Write all units provided to disk.
+ * 
+ * @param player_name   Pointer to Player name string.
+ * @param unit          Something....
+ * @param container     Flag to also save the container??? (non-zero)
+ * @return              The number of units saved.
+ * 
+ ****************************************************************************/
+int save_contents(const char *player_name, unit_data *unit, int container)
 {
     char name[MAX_INPUT_LENGTH + 1];
 
-    fast = 1; /* MAJOR BUG IN DIFF CAUSING BAD PLAYERS! WITH TOO MUCH */
-    /* INVENTORY, THE PLAYER INDEX WILL GET FUCKED UP!      */
-
-    strcpy(name, ContentsFileName(pFileName));
+    strcpy(name, contents_filename(player_name));
 
     if (!unit->getUnitContains())
     {
@@ -429,7 +528,7 @@ int save_contents(const char *pFileName, unit_data *unit, int fast, int bContain
         return 0;
     }
 
-    basic_save_contents(name, unit, fast, bContainer);
+    basic_save_contents(name, unit, container);
 
     return subtract_recurse(unit, unit->getUnitContains(), SECS_PER_REAL_DAY, nullptr);
 }
@@ -643,7 +742,7 @@ unit_data *base_load_contents(const char *pFileName, const unit_data *unit)
 /* Return the daily cost                                           */
 void load_contents(const char *pFileName, unit_data *unit)
 {
-    base_load_contents(ContentsFileName(pFileName), unit);
+    base_load_contents(contents_filename(pFileName), unit);
 }
 
 void reception_boot()
@@ -765,7 +864,7 @@ void store_all_unit(unit_data *u, const char *fname, int svcont)
     /*fuck  if (!UNIT_FILE_INDEX (u))
         return;*/
 
-    basic_save_contents(fname, u, FALSE, svcont);
+    basic_save_contents(fname, u, svcont);
 }
 
 unit_data *restore_all_unit(const char *filename, unit_data *udest)

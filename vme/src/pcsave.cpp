@@ -26,6 +26,7 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <sys/stat.h>
 
 // MS2020 sbit32 g_player_id = -1;
 sbit32 g_player_id = 1; // Looks to me like it needs to begin with 1 (crash on start)
@@ -36,17 +37,125 @@ void assign_player_file_index(unit_data *pc)
     pc->setFileIndex(z->findOrCreatePlayerFileIndex(PC_FILENAME(pc)));
 }
 
-std::string PlayerFileName(const char *pName)
-{
-    std::string TmpBuf;
 
-    if (pName)
-    {
-        TmpBuf = pName;
-        str_lower(TmpBuf);
+/****************************************************************************
+ * Generate base Filename for Player data files.
+ * 
+ * Generates the base filename prefixed with the server configured Player
+ * data directory for the storing of Player specific data. It is expected that
+ * any service within the server that is managing stored Player data is using
+ * a unique file extension associated to the data that is being stored.
+ * 
+ * @param player_name   Pointer to character name string.
+ * @return              Player data file with path.
+ * 
+ ****************************************************************************/
+std::string PlayerFileName(const char *player_name)
+{
+    std::string filename = "";
+
+    if (player_name == nullptr) {
+        slog(
+            LOG_ALL,
+            0,
+            "ERROR - Null string provided to PlayerFileName()!!!!",
+            nullptr
+        );
     }
-    return diku::format_to_str("%s%c/%s", g_cServerConfig.getPlyDir(), *TmpBuf.c_str(), TmpBuf);
+    else {
+        char *tmp_name = str_dup(player_name);
+        char *p = tmp_name;
+        while (*p) {
+            *p = tolower(*p);
+            p++;
+        }
+
+        filename = diku::format_to_str(
+                        "%s%c/%s",
+                        g_cServerConfig.getPlyDir(),
+                        *tmp_name,
+                        tmp_name
+                   );
+    }
+
+    return filename;
 }
+
+
+/****************************************************************************
+ * Check that the required data directory extists for the Player.
+ * 
+ * Make sure that the required directory structure exists for the provided
+ * player. This will generally deal with issues when running within a
+ * container environment where the player data directory may not initially
+ * exist or is complete.
+ * 
+ * @param player_name   Pointer to character name string.
+ * 
+ ****************************************************************************/
+void check_player_dir(const char *player_name) {
+
+    // Create a lowercase version of the Player name.
+    char *tmp_name = str_dup(player_name);
+    char *p = tmp_name;
+    while (*p) {
+        *p = tolower(*p);
+        p++;
+    }
+
+    if (player_name == nullptr) {
+        slog(
+            LOG_ALL,
+            0,
+            "ERROR - Null string provided to check_player_dir()!!!!",
+            nullptr
+        );
+
+        return;
+    }
+
+    // Start with the Player data directory.
+    if (!directory_exists(g_cServerConfig.getPlyDir().c_str())) {
+        slog(
+            LOG_ALL,
+            0,
+            "Player directory doesn't exist, creating: %s",
+            g_cServerConfig.getPlyDir().c_str()
+        );
+        if (mkdir(g_cServerConfig.getPlyDir().c_str(),S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH) == -1) {
+            slog(
+                LOG_ALL,
+                0,
+                "FATAL - Failed to create player data directory.",
+                nullptr
+            );
+            assert(FALSE);
+        }
+    }
+
+    // Make sure that the Player hash directory exists.
+    std::string hash_dir(1, tolower(*player_name));
+    hash_dir.insert(0, g_cServerConfig.getPlyDir());
+
+    if (!directory_exists(hash_dir.c_str())) {
+        slog(
+            LOG_ALL,
+            0,
+            "Player hash directory doesn't exist, creating: %s",
+            hash_dir.c_str()
+        );
+        if (mkdir(hash_dir.c_str(),S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH) == -1) {
+            slog(
+                LOG_ALL,
+                0,
+                "FATAL - Failed to create player hash data directory.",
+                nullptr
+            );
+            assert(FALSE);
+        }
+    }
+}
+
 
 /* Return TRUE if exists */
 int player_exists(const char *pName)
@@ -73,7 +182,7 @@ unit_data *find_player(char *name)
 /* Return TRUE if deleted */
 int delete_inventory(const char *pName)
 {
-    if (remove(ContentsFileName(pName)))
+    if (remove(contents_filename(pName)))
     {
         return FALSE;
     }
@@ -166,48 +275,120 @@ sbit32 new_player_id()
     return g_player_id++;
 }
 
-void save_player_disk(const char *pName, char *pPassword, sbit32 id, int nPlyLen, const ubit8 *pPlyBuf)
+
+/****************************************************************************
+ * Write player data to disk.
+ * 
+ * Write updated Player data to the players data file on disk. This process
+ * is performed in a manner in which limits the chance of a players data
+ * becoming corrupted with the following steps:
+ *      - Generate update player data in memory
+ *      - Rename any exiting Player file to a '.bak' backup
+ *      - Write out player data to a new data file
+ *      - Remove the backup file
+ * If an error is encounted in any part of this process the Player backup file
+ * is renamed back to be the active Player data file. This ensures that no
+ * existing data is modifed as renaming will only manipluate directoy listing
+ * data.
+ * 
+ * @param player_name   Pointer to character name string.
+ * @param id            Character ID from index file.
+ * @param buf_len       Length of player data in bytes.
+ * @param player_data   Pointer to raw player data.
+ * 
+ ****************************************************************************/
+void save_player_disk(
+    const char *player_name,
+    sbit32 id,
+    int buf_len,
+    const ubit8 *player_data)
 {
-    int n = 0;
-    FILE *pPlayerFile = nullptr;
-    static auto tmp_player_name{g_cServerConfig.getPlyDir() + "player.tmp"};
+    void *p;
+    std::vector<unsigned char> data_buf;
+    std::string tmp_filename;
+    FILE *fp;
+    int write_cnt;
 
-    /* Fucking shiting pissing lort! This marcel is driving me mad! */
- //   assert(!file_exists(tmp_player_name));
- //   pPlayerFile = fopen(tmp_player_name.c_str(), "wb");
- //   assert(pPlayerFile);
+    // Make sure we have the required Player directory.
+    check_player_dir(player_name);
 
-    pPlayerFile = fopen(PlayerFileName(pName).c_str(), "wb");
- 
-    n = fwrite(&id, sizeof(id), 1, pPlayerFile);
-    assert(n == 1);
+    // Generate byte buffer to write out to player file.
+    data_buf.resize(sizeof(id) + sizeof(buf_len) + buf_len);
+    p = data_buf.data();
+    std::memcpy(p, &id, sizeof(id));
+    p = (void *) ((unsigned char *)p + sizeof(id));
+    std::memcpy(p, &buf_len, sizeof(buf_len));
+    p = (void *) ((unsigned char *)p + sizeof(buf_len));
+    std::memcpy(p, player_data, buf_len);
 
-    n = fwrite(&nPlyLen, sizeof(nPlyLen), 1, pPlayerFile);
-    assert(n == 1);
+    // Rename any existing player file as a backup.
+    if (file_exists(PlayerFileName(player_name).c_str())) {
+        tmp_filename = PlayerFileName(player_name) + ".bak";
 
-    n = fwrite(pPlyBuf, sizeof(ubit8), nPlyLen, pPlayerFile);
-    assert(n == nPlyLen);
-
-    /* This is a small test to see if the file was actually written to the
-       disk... apparently sometimes this is not the case on marcel (disk
-       full?). Anyway if that is a problem it should have been caught by
-       the n == nPlyLen */
-/*
-    if (fseek(pPlayerFile, 0L, SEEK_END))
-    {
-        assert(FALSE);
+        // If an existing backup exists, then we assume we are dealing with
+        // an error condition and the original backup is more valuable than
+        // the currently player file.
+        if (file_exists(tmp_filename.c_str())) {
+            slog(
+                LOG_ALL,
+                0,
+                "WARNING - Player backup file already exists: %s",
+                tmp_filename.c_str()
+            );
+            slog(
+                LOG_ALL,
+                0,
+                "Deleting Player file in prefence of exisint backup: %s",
+                PlayerFileName(player_name).c_str()
+            );
+            std::remove(PlayerFileName(player_name).c_str());
+        }
+        else {
+            slog(
+                LOG_ALL,
+                0,
+                "Backing up Player file to: %s",
+                tmp_filename.c_str()
+            );
+            std::rename(PlayerFileName(player_name).c_str(), tmp_filename.c_str());
+        }
     }
 
-    assert(ftell(pPlayerFile) == (long int)(nPlyLen + sizeof(nPlyLen) + sizeof(id)));
-*/
-    fclose(pPlayerFile);
+    // Write the Player data to disk
+    fp = fopen(PlayerFileName(player_name).c_str(), "wb");
+    write_cnt = std::fwrite(data_buf.data(), data_buf.size(), 1, fp);
+    fclose(fp);
+    if (write_cnt != 1) {
+        slog(
+            LOG_ALL,
+            0,
+            "ERROR - Writing to Player data file: %s",
+            PlayerFileName(player_name).c_str()
+        );
+        std::remove(PlayerFileName(player_name).c_str());
 
-    /* Unfortunately this must be done to ensure that when the host
-       crashes, it doesn't garble the player. At least then, the
-       old file will remain intact. */
-
-//    n = rename(tmp_player_name.c_str(), PlayerFileName(pName).c_str());
-//    assert(n == 0);
+        if (!tmp_filename.empty()) {
+            slog(
+                LOG_ALL,
+                0,
+                "Restoring backup Player data file: %s",
+                tmp_filename.c_str()
+            );
+            std::rename(tmp_filename.c_str(), PlayerFileName(player_name).c_str());
+        }
+    }
+    else {
+        // If we created a backup file, clean-up.
+        if (!tmp_filename.empty()) {
+            std::remove(tmp_filename.c_str());
+            slog(
+                LOG_ALL,
+                0,
+                "Player backup file removed: %s",
+                tmp_filename.c_str()
+            );
+        }
+    }
 }
 
 /* Save the player 'pc' (no inventory) */
@@ -278,7 +459,7 @@ void save_player_file(unit_data *pc)
     /* Player is now clean (empty and unequipped) */
     nPlyLen = write_unit_string(pBuf, pc);
 
-    save_player_disk(PC_FILENAME(pc), const_cast<char *>(PC_PWD(pc)), PC_ID(pc), nPlyLen, pBuf->GetData());
+    save_player_disk(PC_FILENAME(pc), PC_ID(pc), nPlyLen, pBuf->GetData());
 
     /* Restore all inventory and equipment */
     while ((tmp_u = list))
@@ -331,7 +512,7 @@ void save_player_contents(unit_data *pc, int fast)
     t0 = time(nullptr);
     keep_period = t0;
 
-    daily_cost = save_contents(PC_FILENAME(pc), pc, fast, FALSE);
+    daily_cost = save_contents(PC_FILENAME(pc), pc, FALSE);
 
     if (daily_cost <= 0)
     {

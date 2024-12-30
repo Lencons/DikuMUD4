@@ -17,5 +17,6 @@ sbit32 new_player_id();
 void assign_player_file_index(unit_data *pc);
 void save_player_file(unit_data *pc);
 void player_file_index();
+void check_player_dir(const char *player_name);
 
 extern sbit32 g_player_id;

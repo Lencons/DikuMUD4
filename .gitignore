@@ -28,3 +28,7 @@ docs/defcomp
 docs/mplex
 docs/vmc
 docs/vme
+
+# VME operational files.
+vme/data
+vme/lib/players.id

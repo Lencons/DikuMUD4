@@ -24,6 +24,37 @@
 #include <cstdio>
 #include <cstring>
 
+
+/****************************************************************************
+ * Check if a directory extists and is accessable.
+ * 
+ * Check if the directory exists on the filesystem and a writable by the the
+ * current server user.
+ * 
+ * @param dir_name  Pointer to directory name string.
+ * @return          True if the directory exists and is accessable.
+ * 
+ ****************************************************************************/
+ubit1 directory_exists(const char *dir_name)
+{
+    struct stat info;
+
+    // Does the provided directory name exist.
+    if (stat(dir_name, &info) == 0) {
+
+        // Make sure it is a directory.
+        if (!(info.st_mode & S_IFDIR)) {
+            return FALSE;
+        }
+
+        if (access(dir_name, R_OK && W_OK) == 0) {
+            return TRUE;
+        }
+    }
+
+    return FALSE;
+}
+
 /* Returns the size of a file in bytes */
 long fsize(FILE *f)
 {
@@ -47,18 +78,35 @@ long fsize(FILE *f)
     return size;
 }
 
-/* check if a file exists */
-ubit1 file_exists(const char *name)
-{
-    FILE *fp = nullptr;
 
-    if ((fp = fopen(name, "r")) == nullptr)
-    {
-        return FALSE;
+/****************************************************************************
+ * Check check if a file extists and is writable.
+ * 
+ * Check if a file exists on the filesystem and a writable by the the
+ * current server user.
+ * 
+ * @param filename  Pointer to filenname string.
+ * @return          True if the file exists and is accessable.
+ * 
+ ****************************************************************************/
+ubit1 file_exists(const char *filename)
+{
+    struct stat info;
+
+    // Does the provided directory name exist.
+    if (stat(filename, &info) == 0) {
+
+        // Make sure it is a regular file.
+        if (!(info.st_mode & S_IFREG)) {
+            return FALSE;
+        }
+
+        if (access(filename, R_OK && W_OK)) {
+            return TRUE;
+        }
     }
 
-    fclose(fp);
-    return TRUE;
+    return FALSE;
 }
 
 ubit1 file_exists(const std::string &name)
