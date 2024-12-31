@@ -1,8 +1,9 @@
-/*
- $Author: All $
- $RCSfile: reception.cpp,v $
- $Date: 2004/09/21 08:45:46 $
- $Revision: 2.9 $
+/**
+ * @file
+ * @brief A brief description of the file
+ * 
+ * The is a bit of a test comment.
+ * 
  */
 #include "affect.h"
 #include "comm.h"
@@ -346,21 +347,43 @@ void send_saves(unit_data *parent, unit_data *unit)
 /****************************************************************************
  * Generate the Inventory filename for a Player.
  * 
- * A Player's Inventory data filename is generated adding a '.inv' extension
- * to the Players data filename.
+ * A Player's Inventory data is located within the Player Data (PlyDir)
+ * directory in a file using the lowercase Player name with a 'inv'
+ * extension.
  * 
  * @param player_name   Pointer to Player Inventory file name string.
  * @return              String containing the path and filename of the
  *                      Players Inventory data file.
  * 
  ****************************************************************************/
-const char *contents_filename(const char *player_name)
+std::string contents_filename(const char *player_name)
 {
-    static std::string filename;
+     std::string filename = "";
 
-    filename = player_filename(player_name) + ".inv";
+    if (!player_name) {
+        slog(
+            LOG_ALL,
+            0,
+            "ERROR - Null string provided to contents_filename()!!!!",
+            nullptr
+        );
+    }
+    else {
+        char *tmp_name = str_dup(player_name);
+        char *p = tmp_name;
+        while (*p) {
+            *p = tolower(*p);
+            p++;
+        }
 
-    return filename.c_str();
+        filename = diku::format_to_str(
+                        "%s%s.inv",
+                        g_cServerConfig.getPlyDir(),
+                        tmp_name
+                   );
+    }
+printf("FILENAME: %s\n", filename.c_str());
+    return filename;
 }
 
 
@@ -520,7 +543,7 @@ int save_contents(const char *player_name, unit_data *unit, int container)
 {
     char name[MAX_INPUT_LENGTH + 1];
 
-    strcpy(name, contents_filename(player_name));
+    strcpy(name, contents_filename(player_name).c_str());
 
     if (!unit->getUnitContains())
     {
@@ -742,7 +765,7 @@ unit_data *base_load_contents(const char *pFileName, const unit_data *unit)
 /* Return the daily cost                                           */
 void load_contents(const char *pFileName, unit_data *unit)
 {
-    base_load_contents(contents_filename(pFileName), unit);
+    base_load_contents(contents_filename(pFileName).c_str(), unit);
 }
 
 void reception_boot()

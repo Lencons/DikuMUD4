@@ -198,7 +198,7 @@ void pc_data::gstate_togame(dilprg *pdontstop)
             command_interpreter(this, "look");
         }
     }
-    if (file_exists(contents_filename(PC_FILENAME(this))))
+    if (file_exists(contents_filename(PC_FILENAME(this)).c_str()))
     {
         load_contents(PC_FILENAME(this), this);
 

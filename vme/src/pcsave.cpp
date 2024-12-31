@@ -1,8 +1,10 @@
-/*
- $Author: All $
- $RCSfile: pcsave.cpp,v $
- $Date: 2004/09/21 08:45:46 $
- $Revision: 2.7 $
+/** @file
+ * Does this work as a brief marker??
+ * 
+ * Functions to save and retrieve Player data saved to the local filesystem.
+ * The Player's character data is stored within the server configured PlyDir
+ * Player data directory in a file with the filename of the Player name in
+ * lowercase and a ".dat" file extension.
  */
 
 #include "account.h"
@@ -71,7 +73,7 @@ std::string player_filename(const char *player_name)
         }
 
         filename = diku::format_to_str(
-                        "%s%s",
+                        "%s%s.dat",
                         g_cServerConfig.getPlyDir(),
                         tmp_name
                    );
@@ -106,7 +108,7 @@ unit_data *find_player(char *name)
 /* Return TRUE if deleted */
 int delete_inventory(const char *pName)
 {
-    if (remove(contents_filename(pName)))
+    if (remove(contents_filename(pName).c_str()))
     {
         return FALSE;
     }
