@@ -50,15 +50,15 @@ void assign_player_file_index(unit_data *pc)
  * @return              Player data file with path.
  * 
  ****************************************************************************/
-std::string PlayerFileName(const char *player_name)
+std::string player_filename(const char *player_name)
 {
     std::string filename = "";
 
-    if (player_name == nullptr) {
+    if (!player_name) {
         slog(
             LOG_ALL,
             0,
-            "ERROR - Null string provided to PlayerFileName()!!!!",
+            "ERROR - Null string provided to player_filename()!!!!",
             nullptr
         );
     }
@@ -71,9 +71,8 @@ std::string PlayerFileName(const char *player_name)
         }
 
         filename = diku::format_to_str(
-                        "%s%c/%s",
+                        "%s%s",
                         g_cServerConfig.getPlyDir(),
-                        *tmp_name,
                         tmp_name
                    );
     }
@@ -82,85 +81,10 @@ std::string PlayerFileName(const char *player_name)
 }
 
 
-/****************************************************************************
- * Check that the required data directory extists for the Player.
- * 
- * Make sure that the required directory structure exists for the provided
- * player. This will generally deal with issues when running within a
- * container environment where the player data directory may not initially
- * exist or is complete.
- * 
- * @param player_name   Pointer to character name string.
- * 
- ****************************************************************************/
-void check_player_dir(const char *player_name) {
-
-    // Create a lowercase version of the Player name.
-    char *tmp_name = str_dup(player_name);
-    char *p = tmp_name;
-    while (*p) {
-        *p = tolower(*p);
-        p++;
-    }
-
-    if (player_name == nullptr) {
-        slog(
-            LOG_ALL,
-            0,
-            "ERROR - Null string provided to check_player_dir()!!!!",
-            nullptr
-        );
-
-        return;
-    }
-
-    // Start with the Player data directory.
-    if (!directory_exists(g_cServerConfig.getPlyDir().c_str())) {
-        slog(
-            LOG_ALL,
-            0,
-            "Player directory doesn't exist, creating: %s",
-            g_cServerConfig.getPlyDir().c_str()
-        );
-        if (mkdir(g_cServerConfig.getPlyDir().c_str(),S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH) == -1) {
-            slog(
-                LOG_ALL,
-                0,
-                "FATAL - Failed to create player data directory.",
-                nullptr
-            );
-            assert(FALSE);
-        }
-    }
-
-    // Make sure that the Player hash directory exists.
-    std::string hash_dir(1, tolower(*player_name));
-    hash_dir.insert(0, g_cServerConfig.getPlyDir());
-
-    if (!directory_exists(hash_dir.c_str())) {
-        slog(
-            LOG_ALL,
-            0,
-            "Player hash directory doesn't exist, creating: %s",
-            hash_dir.c_str()
-        );
-        if (mkdir(hash_dir.c_str(),S_IRWXU|S_IRWXG|S_IROTH|S_IXOTH) == -1) {
-            slog(
-                LOG_ALL,
-                0,
-                "FATAL - Failed to create player hash data directory.",
-                nullptr
-            );
-            assert(FALSE);
-        }
-    }
-}
-
-
 /* Return TRUE if exists */
 int player_exists(const char *pName)
 {
-    return file_exists(PlayerFileName(pName));
+    return file_exists(player_filename(pName));
 }
 
 unit_data *find_player(char *name)
@@ -193,7 +117,7 @@ int delete_inventory(const char *pName)
 /* Return TRUE if deleted */
 int delete_player(const char *pName)
 {
-    if (remove(PlayerFileName(pName).c_str()))
+    if (remove(player_filename(pName).c_str()))
     {
         return FALSE;
     }
@@ -215,7 +139,7 @@ sbit32 find_player_id(char *pName)
         return -1;
     }
 
-    pFile = fopen(PlayerFileName(pName).c_str(), "rb");
+    pFile = fopen(player_filename(pName).c_str(), "rb");
 
     if (pFile == nullptr)
     {
@@ -309,9 +233,6 @@ void save_player_disk(
     FILE *fp;
     int write_cnt;
 
-    // Make sure we have the required Player directory.
-    check_player_dir(player_name);
-
     // Generate byte buffer to write out to player file.
     data_buf.resize(sizeof(id) + sizeof(buf_len) + buf_len);
     p = data_buf.data();
@@ -322,8 +243,8 @@ void save_player_disk(
     std::memcpy(p, player_data, buf_len);
 
     // Rename any existing player file as a backup.
-    if (file_exists(PlayerFileName(player_name).c_str())) {
-        tmp_filename = PlayerFileName(player_name) + ".bak";
+    if (file_exists(player_filename(player_name).c_str())) {
+        tmp_filename = player_filename(player_name) + ".bak";
 
         // If an existing backup exists, then we assume we are dealing with
         // an error condition and the original backup is more valuable than
@@ -339,9 +260,9 @@ void save_player_disk(
                 LOG_ALL,
                 0,
                 "Deleting Player file in prefence of exisint backup: %s",
-                PlayerFileName(player_name).c_str()
+                player_filename(player_name).c_str()
             );
-            std::remove(PlayerFileName(player_name).c_str());
+            std::remove(player_filename(player_name).c_str());
         }
         else {
             slog(
@@ -350,12 +271,12 @@ void save_player_disk(
                 "Backing up Player file to: %s",
                 tmp_filename.c_str()
             );
-            std::rename(PlayerFileName(player_name).c_str(), tmp_filename.c_str());
+            std::rename(player_filename(player_name).c_str(), tmp_filename.c_str());
         }
     }
 
     // Write the Player data to disk
-    fp = fopen(PlayerFileName(player_name).c_str(), "wb");
+    fp = fopen(player_filename(player_name).c_str(), "wb");
     write_cnt = std::fwrite(data_buf.data(), data_buf.size(), 1, fp);
     fclose(fp);
     if (write_cnt != 1) {
@@ -363,9 +284,9 @@ void save_player_disk(
             LOG_ALL,
             0,
             "ERROR - Writing to Player data file: %s",
-            PlayerFileName(player_name).c_str()
+            player_filename(player_name).c_str()
         );
-        std::remove(PlayerFileName(player_name).c_str());
+        std::remove(player_filename(player_name).c_str());
 
         if (!tmp_filename.empty()) {
             slog(
@@ -374,7 +295,7 @@ void save_player_disk(
                 "Restoring backup Player data file: %s",
                 tmp_filename.c_str()
             );
-            std::rename(tmp_filename.c_str(), PlayerFileName(player_name).c_str());
+            std::rename(tmp_filename.c_str(), player_filename(player_name).c_str());
         }
     }
     else {
@@ -653,7 +574,7 @@ unit_data *load_player(const char *pName)
         return nullptr;
     }
 
-    pFile = fopen(PlayerFileName(pName).c_str(), "rb");
+    pFile = fopen(player_filename(pName).c_str(), "rb");
     if (pFile == nullptr)
     {
         return nullptr;

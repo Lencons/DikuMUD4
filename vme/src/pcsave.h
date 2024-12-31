@@ -4,7 +4,7 @@
 
 #include <string>
 
-std::string PlayerFileName(const char *);
+std::string player_filename(const char *);
 int delete_inventory(const char *pName);
 int delete_player(const char *);
 int find_player_id(char *pName);
@@ -17,6 +17,5 @@ sbit32 new_player_id();
 void assign_player_file_index(unit_data *pc);
 void save_player_file(unit_data *pc);
 void player_file_index();
-void check_player_dir(const char *player_name);
 
 extern sbit32 g_player_id;

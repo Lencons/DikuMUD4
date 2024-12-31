@@ -358,7 +358,7 @@ const char *contents_filename(const char *player_name)
 {
     static std::string filename;
 
-    filename = PlayerFileName(player_name) + ".inv";
+    filename = player_filename(player_name) + ".inv";
 
     return filename.c_str();
 }
