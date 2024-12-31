@@ -750,7 +750,7 @@ void cleanup()
 
 void cleanup_playerfile(int c)
 {
-    top_id = read_player_id();
+    top_id = max_player_id();
     CREATE(ids, ubit8, top_id + 1);
 
     memset(ids, 0, top_id);

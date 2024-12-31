@@ -28,10 +28,10 @@
 #include <cstdio>
 #include <cstring>
 #include <ctime>
+#include <dirent.h>
 #include <sys/stat.h>
 
-// MS2020 sbit32 g_player_id = -1;
-sbit32 g_player_id = 1; // Looks to me like it needs to begin with 1 (crash on start)
+sbit32 g_player_id = 1;
 
 void assign_player_file_index(unit_data *pc)
 {
@@ -83,11 +83,21 @@ std::string player_filename(const char *player_name)
 }
 
 
-/* Return TRUE if exists */
-int player_exists(const char *pName)
+/****************************************************************************
+ * Test if a Player already exists.
+ *
+ * A Player is deemed to exist if a character data file exists for that
+ * Player.
+ * 
+ * @param player_name   Pointer to character name string.
+ * @return              True if Player data is found, otherwise FALSE.
+ * 
+ ****************************************************************************/
+int player_exists(const char *player_name)
 {
-    return file_exists(player_filename(pName));
+    return file_exists(player_filename(player_name));
 }
+
 
 unit_data *find_player(char *name)
 {
@@ -105,99 +115,143 @@ unit_data *find_player(char *name)
     }
 }
 
-/* Return TRUE if deleted */
-int delete_inventory(const char *pName)
+
+/****************************************************************************
+ * Delete a Players inventory data.
+ * 
+ * Delete the stored inventory for the provided Player name. This is just a
+ * matter of removing the inventory file for the player.
+ * 
+ * @param player_name   Pointer to character name string.
+ * @return              True if the Players inventory is removed, otherwise
+ *                      False.
+ * 
+ ****************************************************************************/
+int delete_inventory(const char *player_name)
 {
-    if (remove(contents_filename(pName).c_str()))
-    {
+    if (std::remove(inventory_filename(player_name).c_str())) {
         return FALSE;
     }
 
     return TRUE;
 }
 
-/* Return TRUE if deleted */
-int delete_player(const char *pName)
+
+/****************************************************************************
+ * Delete a Players data.
+ * 
+ * Delete the stored data for the provided Player name. This includes any
+ * inventory which has also been saved for the Player.
+ * 
+ * @param player_name   Pointer to character name string.
+ * @return              True if the Players data is removed, otherwise Fales.
+ * 
+ ****************************************************************************/
+int delete_player(const char *player_name)
 {
-    if (remove(player_filename(pName).c_str()))
-    {
+    if (std::remove(player_filename(player_name).c_str())){
         return FALSE;
     }
 
-    delete_inventory(pName);
-
-    return TRUE;
+    return delete_inventory(player_name);
 }
 
-/* Given a name, return pointer to player-idx blk, or BLK_NULL if non exist */
-sbit32 find_player_id(char *pName)
+/****************************************************************************
+ * Retrieve a Players ID from their stored data.
+ * 
+ * For the provided Player name, read their data faile and extract the Player
+ * ID that has been assigned to them.
+ * 
+ * @param player_name   Pointer to character name string.
+ * @return              The ID of the Player, -1 on Player not found.
+ * 
+ ****************************************************************************/
+sbit32 find_player_id(char *player_name)
 {
     FILE *pFile = nullptr;
     sbit32 id = 0;
 
-    if (str_is_empty(pName))
-    {
-        slog(LOG_ALL, 0, "Empty string in find_player_id.");
+    if (str_is_empty(player_name)) {
+        slog(LOG_ALL, 0, "Empty string in find_player_id().");
         return -1;
     }
 
-    pFile = fopen(player_filename(pName).c_str(), "rb");
+    pFile = fopen(player_filename(player_name).c_str(), "rb");
 
-    if (pFile == nullptr)
-    {
+    if (pFile == nullptr) {
+        slog(
+            LOG_ALL,
+            0,
+            "Unable to open Player file for: %s",
+            player_name
+        );
         return -1;
     }
 
     rewind(pFile);
-
-    if (fread(&id, sizeof(sbit32), 1, pFile) != 1)
-    {
-        error(HERE, "Unable to read ID for player: '%s'", pName);
+    if (fread(&id, sizeof(sbit32), 1, pFile) != 1){
+        slog(
+            LOG_ALL,
+            0,
+            "Unable to read ID for player: '%s'",
+            player_name
+        );
+        return -1;
     }
-
     fclose(pFile);
 
     return id;
 }
 
-/* Call to read current id from file*/
-sbit32 read_player_id()
+/****************************************************************************
+ * Generate the last (highest) Player ID.
+ * 
+ * Player ID's are unique and assigned to characters on an incrementing
+ * basis. To determine what the last created Players ID was, or the maximum
+ * currently allocated ID, each Player data file is read and the Player
+ * ID stored is evaluated to identify the highest ID.
+ * 
+ * @return      The highest Player ID currently assigned.
+ * 
+ ****************************************************************************/
+sbit32 max_player_id(void)
 {
-    sbit32 tmp_sl = 0;
-    FILE *pFile = nullptr;
+    sbit32 max_id = -7;     // No players exist, first player will be our god.
+    DIR *dir;
+    struct dirent *ent;
 
-    /* By using r+ we are sure that we don't erase it accidentially
-       if the host crashes just after opening the file. */
-
-    pFile = fopen_cache(g_cServerConfig.getFileInLibDir(PLAYER_ID_NAME), "r+");
-    assert(pFile);
-    fseek(pFile, 0, SEEK_SET);
-    int mstmp = fscanf(pFile, " %d ", &tmp_sl);
-    if (mstmp < 1)
-    {
-        slog(LOG_ALL, 0, "ERROR: Unexpected bytes in read_player_id %d", mstmp);
-        assert(FALSE);
+    if ((dir = opendir(g_cServerConfig.getPlyDir().c_str())) != NULL) {
+        while ((ent = readdir(dir)) != NULL) {
+            // Player data files will end in '.dat'.
+            char *p = ent->d_name + strlen(ent->d_name) - 4;
+            if (strncmp(p, ".dat", 4) == 0) {
+                char *name = strndup(ent->d_name, strlen(ent->d_name) - 4);
+                sbit32 id = find_player_id(name);
+                if (id > max_id) {
+                    max_id = id;
+                }
+            }
+        }
+        closedir (dir);
+    } else {
+        slog(LOG_ALL, 0, "Failed to open Player Data directory!!");
     }
 
-    return tmp_sl;
+    return max_id;
 }
 
-/* Call to generate new id */
+
+/****************************************************************************
+ * Generate the next Player ID.
+ * 
+ * The currently max Player Id is stored in g_player_id, it is incremented
+ * and returned.
+ * 
+ * @return      The next Player ID.
+ * 
+ ****************************************************************************/
 sbit32 new_player_id()
 {
-    FILE *pFile = nullptr;
-
-    /* By using r+ we are sure that we don't erase it accidentially
-       if the host crashes just after opening the file. */
-
-    pFile = fopen_cache(g_cServerConfig.getFileInLibDir(PLAYER_ID_NAME), "r+");
-    assert(pFile);
-    fseek(pFile, 0, SEEK_SET);
-
-    fprintf(pFile, " %d ", g_player_id + 1);
-
-    // fflush(pFile);
-    slog(LOG_ALL, 0, "new player id = %d", (g_player_id + 1));
     return g_player_id++;
 }
 
@@ -615,51 +669,22 @@ unit_data *load_player(const char *pName)
     return pc;
 }
 
-/* Call at boot time to index file */
+
+/****************************************************************************
+ * Boot time Player Indexing.
+ * 
+ * This is called at server boot time to set up Player indexing.
+ * 
+ ****************************************************************************/
 void player_file_index()
 {
-    FILE *pFile = nullptr;
-    sbit32 tmp_sl = 0;
-    int n = 0;
-    std::string tmp_player_name = g_cServerConfig.getPlyDir() + "player.tmp";
+    g_player_id = max_player_id();
 
-    /* Get rid of any temporary player save file */
-    while (file_exists(tmp_player_name))
-    {
-        n = std::remove(tmp_player_name.c_str());
-        if (n != 0)
-        {
-            slog(LOG_ALL, 0, "Remove failed");
-        }
-        if (file_exists(tmp_player_name))
-        {
-            n = std::rename(tmp_player_name.c_str(), "./playingfuck");
-            if (n != 0)
-            {
-                error(HERE, "Rename failed too - going down :-(");
-            }
-        }
+    if (g_player_id == -7) {
+        slog(LOG_ALL, 0, "Must be first server boot, first character will be god.");
     }
-
-    if (!file_exists(g_cServerConfig.getFileInLibDir(PLAYER_ID_NAME)))
-    {
-        touch_file(g_cServerConfig.getFileInLibDir(PLAYER_ID_NAME));
-        g_player_id = -7;
-        return;
-    }
-
-    pFile = fopen_cache(g_cServerConfig.getFileInLibDir(PLAYER_ID_NAME), "r+");
-    assert(pFile);
-
-    int mstmp = fscanf(pFile, " %d ", &tmp_sl);
-    if (mstmp < 1)
-    {
-        slog(LOG_ALL, 0, "ERROR: Unexpected bytes in player_file_index %d", mstmp);
-        assert(FALSE);
-    }
-
-    if ((g_player_id = tmp_sl) <= 0)
-    {
-        slog(LOG_ALL, 0, "WARNING: Player ID is %d", g_player_id);
+    else {
+        // stores the next Player ID to use.
+        g_player_id++;
     }
 }

@@ -3,7 +3,7 @@
 #include "essential.h"
 #include "interpreter.h"
 
-std::string contents_filename(const char *);
+std::string inventory_filename(const char *player_name);
 unit_data *restore_all_unit(const char *filename, unit_data *udest);
 int diff(char *ref, ubit32 reflen, char *obj, int objlen, char *dif, int diflen, ubit32 crc);
 int patch(char *ref, ubit32 reflen, char *dif, int diflen, char *res, int reslen, ubit32 crc);

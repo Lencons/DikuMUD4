@@ -5,11 +5,11 @@
 #include <string>
 
 std::string player_filename(const char *);
-int delete_inventory(const char *pName);
-int delete_player(const char *);
-int find_player_id(char *pName);
-int player_exists(const char *pName);
-int read_player_id();
+int delete_inventory(const char *player_name);
+int delete_player(const char *player_name);
+int find_player_id(char *player_name);
+int player_exists(const char *player_name);
+int max_player_id(void);
 void save_player(unit_data *pc);
 unit_data *load_player(const char *pName);
 void save_player_contents(unit_data *pc, int fast);

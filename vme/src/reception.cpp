@@ -356,7 +356,7 @@ void send_saves(unit_data *parent, unit_data *unit)
  *                      Players Inventory data file.
  * 
  ****************************************************************************/
-std::string contents_filename(const char *player_name)
+std::string inventory_filename(const char *player_name)
 {
      std::string filename = "";
 
@@ -364,7 +364,7 @@ std::string contents_filename(const char *player_name)
         slog(
             LOG_ALL,
             0,
-            "ERROR - Null string provided to contents_filename()!!!!",
+            "ERROR - Null string provided to inventory_filename()!!!!",
             nullptr
         );
     }
@@ -382,7 +382,7 @@ std::string contents_filename(const char *player_name)
                         tmp_name
                    );
     }
-printf("FILENAME: %s\n", filename.c_str());
+
     return filename;
 }
 
@@ -543,7 +543,7 @@ int save_contents(const char *player_name, unit_data *unit, int container)
 {
     char name[MAX_INPUT_LENGTH + 1];
 
-    strcpy(name, contents_filename(player_name).c_str());
+    strcpy(name, inventory_filename(player_name).c_str());
 
     if (!unit->getUnitContains())
     {
@@ -555,6 +555,7 @@ int save_contents(const char *player_name, unit_data *unit, int container)
 
     return subtract_recurse(unit, unit->getUnitContains(), SECS_PER_REAL_DAY, nullptr);
 }
+
 
 /* From the block_file 'bf' at index 'blk_idx' load the objects    */
 /* and place them inside 'unit' by unit_to_unit and possibly equip */
@@ -765,7 +766,7 @@ unit_data *base_load_contents(const char *pFileName, const unit_data *unit)
 /* Return the daily cost                                           */
 void load_contents(const char *pFileName, unit_data *unit)
 {
-    base_load_contents(contents_filename(pFileName).c_str(), unit);
+    base_load_contents(inventory_filename(pFileName).c_str(), unit);
 }
 
 void reception_boot()

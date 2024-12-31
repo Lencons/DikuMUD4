@@ -46,7 +46,6 @@
 #define SLIME_FILE "slime"
 #define CRIME_NUM_FILE "crime_nr"
 #define CRIME_ACCUSE_FILE "crime"
-#define PLAYER_ID_NAME "players.id"
 #define MAIL_FILE_NAME "mailbox.idx"
 #define MAIL_BLOCK_NAME "mailbox.blk"
 #define CREDITS_FILE "credits" /* for the 'credits' command  */
