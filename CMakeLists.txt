@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16.3)
-project(DikuMUD3)
+project(DikuMUD4)
 
 find_package(BISON)
 find_package(FLEX)

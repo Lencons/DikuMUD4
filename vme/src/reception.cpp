@@ -1,8 +1,10 @@
 /**
  * @file
- * @brief A brief description of the file
+ * @brief Manage players entering and leaving the game engine.
  * 
- * The is a bit of a test comment.
+ * Player Inventory
+ *      Player inventory data is loaded and saved to a file in PlyDir in the
+ *      characters name with a '.inv' extension.
  * 
  */
 #include "affect.h"

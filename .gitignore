@@ -16,11 +16,11 @@ compile_commands.json
 Makefile
 CTestTestfile.cmake
 Testing/
-unit_tests/CTestTestfile.cmake
 core.*
 gmon.out
 
 # Unit testing artifacts created from the build process.
+unit_tests/CTestTestfile.cmake
 #unit_tests/json_configs
 
 # Generated document files from the build process.
@@ -28,7 +28,3 @@ docs/defcomp
 docs/mplex
 docs/vmc
 docs/vme
-
-# VME operational files.
-vme/data
-vme/lib/players.id

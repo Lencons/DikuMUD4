@@ -1,10 +1,19 @@
 /** @file
- * Does this work as a brief marker??
+ * @brief Manage the reading and writing of player data to disk.
  * 
  * Functions to save and retrieve Player data saved to the local filesystem.
  * The Player's character data is stored within the server configured PlyDir
  * Player data directory in a file with the filename of the Player name in
  * lowercase and a ".dat" file extension.
+ * 
+ * Global Player ID
+ * ================
+ * The global variable g_player_id is used to store the ID of the next player
+ * to be created within the game engine. This value is generated at server
+ * boot time by scanning all '.dat' files within the Player data directory to
+ * identify the highest currently allocated ID, then that ID plus 1 is stored
+ * g_player_id for the operational use of this module.
+ *      
  */
 
 #include "account.h"
@@ -41,7 +50,7 @@ void assign_player_file_index(unit_data *pc)
 
 
 /****************************************************************************
- * Generate base Filename for Player data files.
+ * @brief Generate base Filename for Player data files.
  * 
  * Generates the base filename prefixed with the server configured Player
  * data directory for the storing of Player specific data. It is expected that

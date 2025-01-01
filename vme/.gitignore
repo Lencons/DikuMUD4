@@ -1,4 +1,12 @@
-vme.log
+# VME Specific Git Ignore files.
+#
 build/
-log/*
+data/
+
+# Random Files that may exist from testing
+vme.log
+mplex.log
+
+# Old legacy stuff which might exist but might be able to go.
 Zones/*
+lib/players.id
