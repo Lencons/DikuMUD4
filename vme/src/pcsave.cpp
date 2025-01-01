@@ -7,7 +7,7 @@
  * lowercase and a ".dat" file extension.
  * 
  * Global Player ID
- * ================
+ * ----------------
  * The global variable g_player_id is used to store the ID of the next player
  * to be created within the game engine. This value is generated at server
  * boot time by scanning all '.dat' files within the Player data directory to
@@ -42,6 +42,15 @@
 
 sbit32 g_player_id = 1;
 
+
+/****************************************************************************
+ * @brief Assign a Player ID to a character??
+ * 
+ * Something, need to work it ou.
+ *
+ * @param pc   Character data maybe??
+ * 
+ ****************************************************************************/
 void assign_player_file_index(unit_data *pc)
 {
     zone_type *z = find_zone(g_player_zone);
@@ -93,7 +102,7 @@ std::string player_filename(const char *player_name)
 
 
 /****************************************************************************
- * Test if a Player already exists.
+ * @brief Test if a Player already exists.
  *
  * A Player is deemed to exist if a character data file exists for that
  * Player.
@@ -126,7 +135,7 @@ unit_data *find_player(char *name)
 
 
 /****************************************************************************
- * Delete a Players inventory data.
+ * @brief Delete a Players inventory data.
  * 
  * Delete the stored inventory for the provided Player name. This is just a
  * matter of removing the inventory file for the player.
@@ -147,7 +156,7 @@ int delete_inventory(const char *player_name)
 
 
 /****************************************************************************
- * Delete a Players data.
+ * @brief Delete a Players data.
  * 
  * Delete the stored data for the provided Player name. This includes any
  * inventory which has also been saved for the Player.
@@ -166,7 +175,7 @@ int delete_player(const char *player_name)
 }
 
 /****************************************************************************
- * Retrieve a Players ID from their stored data.
+ * @brief Retrieve a Players ID from their stored data.
  * 
  * For the provided Player name, read their data faile and extract the Player
  * ID that has been assigned to them.
@@ -213,7 +222,7 @@ sbit32 find_player_id(char *player_name)
 }
 
 /****************************************************************************
- * Generate the last (highest) Player ID.
+ * @brief Generate the last (highest) Player ID.
  * 
  * Player ID's are unique and assigned to characters on an incrementing
  * basis. To determine what the last created Players ID was, or the maximum
@@ -251,7 +260,7 @@ sbit32 max_player_id(void)
 
 
 /****************************************************************************
- * Generate the next Player ID.
+ * @brief Generate the next Player ID.
  * 
  * The currently max Player Id is stored in g_player_id, it is incremented
  * and returned.
@@ -266,7 +275,7 @@ sbit32 new_player_id()
 
 
 /****************************************************************************
- * Write player data to disk.
+ * @brief Write player data to disk.
  * 
  * Write updated Player data to the players data file on disk. This process
  * is performed in a manner in which limits the chance of a players data
@@ -680,7 +689,7 @@ unit_data *load_player(const char *pName)
 
 
 /****************************************************************************
- * Boot time Player Indexing.
+ * @brief Boot time Player Indexing.
  * 
  * This is called at server boot time to set up Player indexing.
  * 

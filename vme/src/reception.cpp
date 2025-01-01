@@ -2,11 +2,15 @@
  * @file
  * @brief Manage players entering and leaving the game engine.
  * 
+ * Does something for sure.
+ * 
  * Player Inventory
- *      Player inventory data is loaded and saved to a file in PlyDir in the
- *      characters name with a '.inv' extension.
+ * ----------------
+ * Player inventory data is loaded and saved to a file in PlyDir in the
+ * characters name with a '.inv' extension.
  * 
  */
+
 #include "affect.h"
 #include "comm.h"
 #include "db.h"
@@ -347,7 +351,7 @@ void send_saves(unit_data *parent, unit_data *unit)
 
 
 /****************************************************************************
- * Generate the Inventory filename for a Player.
+ * @brief Generate the Inventory filename for a Player.
  * 
  * A Player's Inventory data is located within the Player Data (PlyDir)
  * directory in a file using the lowercase Player name with a 'inv'
@@ -390,7 +394,7 @@ std::string inventory_filename(const char *player_name)
 
 
 /****************************************************************************
- * Write player inventory data to disk.
+ * @brief Write player inventory data to disk.
  * 
  * Write Player Inventory data to the players data file on disk. This process
  * is performed in a manner in which limits the chance of a players data
@@ -531,7 +535,7 @@ void basic_save_contents(
 
 
 /****************************************************************************
- * Save player inventory.
+ * @brief Save player inventory.
  * 
  * Write all units provided to disk.
  * 
