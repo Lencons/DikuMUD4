@@ -30,6 +30,8 @@ spec:
           volumeMounts:
             - name: dikumud-players
               mountPath: /vme/data/players
+            - name: dikumud-backup
+              mountPath: /backups
           ports:
             - name: telnet
               containerPort: 4242
@@ -39,3 +41,7 @@ spec:
         - name: dikumud-players
           persistentVolumeClaim:
             claimName: dikumud-players-pvc
+        - name: dikumud-backup
+          nfs:
+            server: sr-nas01.core.dunbart.net
+            path: /mnt/t1-pool1/backup/dikumud
