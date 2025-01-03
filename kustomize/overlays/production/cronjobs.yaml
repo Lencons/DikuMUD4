@@ -1,0 +1,38 @@
+---
+# Daily backup of player files.
+#
+# This needs to be done better than this at some time. But this is good
+# enough for a quick fix.
+#
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: vme-backup
+spec:
+  schedule: "* 5 * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: vme-backup
+            image: alpine:latest
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+              - name: dikumud-players
+                mountPath: /data/players
+              - name: dikumud-backup
+                mountPath: /backups
+            command:
+            - /bin/sh
+            - -c
+            - cp -r /data/players /backups/players
+          restartPolicy: OnFailure
+          volumes:
+            - name: dikumud-players
+              persistentVolumeClaim:
+                claimName: dikumud-players-pvc
+            - name: dikumud-backup
+              nfs:
+                server: sr-nas01.core.dunbart.net
+                path: /mnt/t1-pool1/backup/dikumud
