@@ -26,7 +26,7 @@ spec:
             command:
             - /bin/sh
             - -c
-            - cp -r /data/players /backups/players
+            - cp -r /data /backups
           restartPolicy: OnFailure
           volumes:
             - name: dikumud-players
