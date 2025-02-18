@@ -1,0 +1,3 @@
+FROM nginx:alpine
+
+COPY vme/www/client/ /usr/share/nginx/html/

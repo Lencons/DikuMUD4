@@ -20,7 +20,11 @@ function log {
 #
 cd bin
 $VME_ROOT/bin/vme -s $SERVER_CONFIG -l $VME_ROOT/log/vme.log &
-$VME_ROOT/bin/mplex -p 4242 -l $VME_ROOT/log/mplex.log
+
+# Start mplex services
+$VME_ROOT/bin/mplex -p 4242 -l $VME_ROOT/log/mplex-telnet.log &
+#$VME_ROOT/bin/mplex -w -p 4280 -l $VME_ROOT/log/mplex-web.log &
+
 
 # keep the container alive.
 while true; do sleep 3600 ; done

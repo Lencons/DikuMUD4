@@ -14,12 +14,6 @@ The production image is created with the following Docker command. This will cre
 docker build -t dikumud:local .
 ```
 
-To build a test image, Docker need to be told to build from `Dockerfile.test` rather than the default `Dockerfile`. This command will create a local test image with the tag `local-test`:
-
-```bash
-docker build -t dikumud:local-test -f Dockerfile.test .
-```
-
 You can confirm images was built by doing:
 
 ```bash
@@ -49,7 +43,7 @@ What is stored in this volume is player data and server configuration
   TODO: clean up the directories and make sure all volatile data is saved here (etc/zonefiles for example)
 
 Run the following command to create the volume:
-```
+```bash
 docker volume create dikumud-vol
 ```
 
@@ -58,10 +52,12 @@ it needs to be updated under the 'volumes:' directive there
 
 Now you need to move existing data into this newly created volume.
 Where your docker volumes are stored may differ depending on your setup.
-```
+
+```bash
 mv vme/etc /var/lib/docker/volumes/dikumud-vol/_data
 mv vme/lib /var/lib/docker/volumes/dikumud-vol/_data
 ```
+
 Note: Some new zone or player ability data may be created in vme/etc if the vme binary is built again.
       This will need to be copied into the Docker Volume after a build
 TODO: Figure out how to get new data built into the right place to be packaged into a container.

@@ -6,7 +6,10 @@ ENV VME_ROOT=/vme
 RUN apt-get update && \
     apt-get -y upgrade
 
-# The following packages are included to help managed the operational server.
+# Install required shared libraries.
+RUN apt-get install -y libboost-all-dev
+
+# The following packages are included to help manage the operational server.
 RUN apt-get install -y inetutils-telnet less vim curl wget procps
 
 WORKDIR $VME_ROOT
@@ -17,7 +20,6 @@ COPY vme/etc/           etc/
 COPY vme/include/       include/
 COPY vme/lib/           lib/
 COPY vme/zone/*.zon     zone/
-COPY vme/www/           www/
 
 # Compile the Zone files.
 RUN cd zone && \
@@ -37,4 +39,4 @@ RUN apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 EXPOSE 4242/tcp
-CMD ["./bin/entrypoint.sh"]
+ENTRYPOINT [ "./bin/entrypoint.sh" ]

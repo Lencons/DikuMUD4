@@ -236,7 +236,7 @@ sbit32 max_player_id(void)
 {
     sbit32 max_id = -7;     // No players exist, first player will be our god.
     DIR *dir;
-    struct dirent *ent;
+    dirent *ent;
 
     if ((dir = opendir(g_cServerConfig.getPlyDir().c_str())) != NULL) {
         while ((ent = readdir(dir)) != NULL) {
