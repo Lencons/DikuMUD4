@@ -11,11 +11,7 @@
 #include "essential.h"
 #include "queue.h"
 
-#ifdef _WINDOWS
-    #include <winsock.h>
-#else
-    #include <sys/select.h>
-#endif
+#include <sys/select.h>
 
 #define SELECT_READ 0x01
 #define SELECT_WRITE 0x02
@@ -102,4 +98,4 @@ private:
 
 extern cCaptainHook g_CaptainHook;
 
-#endif
+#endif /* SELECT_H */

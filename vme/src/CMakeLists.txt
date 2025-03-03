@@ -62,7 +62,6 @@ set(VME_SRCS
         json_helper.h json_helper.cpp
         justice.cpp justice.h
         magic.cpp magic.h
-        main.h
         main_functions.cpp main_functions.h
         membug.cpp membug.h
         mobact.cpp mobact.h

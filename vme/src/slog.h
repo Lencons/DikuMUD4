@@ -19,7 +19,7 @@ void slog_raw(log_level level, ubit8 wizinv_level, const std::string &msg);
 
 
 /******************************************************************************
- * Generate a system log entry.
+ * @brief Generate a system log entry.
  *
  * Logging system function to create log entries within the application. The
  * logging level identifies the type of log entry to create.

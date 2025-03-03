@@ -1,9 +1,10 @@
-/*
- $Author: All $
- $RCSfile: main.cpp,v $
- $Date: 2004/09/18 19:52:56 $
- $Revision: 2.10 $
+/** @file
+ * @brief Server core startup and running functions.
+ *
+ * Functionality to enable the application server to start and then enter
+ * the main execution loop.
  */
+
 #include "main_functions.h"
 
 #include "comm.h"
@@ -450,22 +451,31 @@ timeval timediff(timeval *a, timeval *b)
     return rslt;
 }
 
-void ShowUsage(const char *name)
+
+/******************************************************************************
+ * @brief Display application usage help to the user.
+ *
+ * Display formated help information to the user on the command line syntax of
+ * the application server and parameter options.
+ * 
+ * @param name          Name of the executed binary.
+ *****************************************************************************/
+void show_usage(const char *name)
 {
-    fprintf(stderr,
-            "Usage: %s [-h] [-d pathname] -l [filename] "
-            "[-z pathname] [-c -C -L\n\n",
-            name);
-    fprintf(stderr, "  -h: This help screen.\n");
-    fprintf(stderr, "  -c: Convert player files\n");
-    fprintf(stderr, "  -C: Cleanup  player files (deletes bad or old chars use with care)\n");
-    fprintf(stderr, "  -l: Log file\n");
-    fprintf(stderr, "  -L: List player files\n");
-    fprintf(stderr, "  -s: Location of the server.cfg file\n");
-    fprintf(stderr, "  -p: Persistant containers list\n");
-    fprintf(stderr, "  -d: dump all profession tables.\n");
-    fprintf(stderr, "Copyright (C) 1994 - 1996 by Valhalla.\n");
+    std::cout <<
+        "Usage: " << name << " [-h] [-d pathname] -l [filename] [-z pathname] [-c -C -L\n"
+        "\n"
+        "Parameters:\n"
+        "  -h  This help screen.\n"
+        "  -c  Convert player files\n"
+        "  -C  Cleanup  player files (deletes bad or old chars use with care)\n"
+        "  -l  Logfile name to output logging to (default: STDERR)\n"
+        "  -L  List player files\n"
+        "  -s  Location of the server.cfg file\n"
+        "  -p  Persistant containers list\n"
+        "  -d  dump all profession tables.\n";
 }
+
 
 void DumpJSONZones()
 {

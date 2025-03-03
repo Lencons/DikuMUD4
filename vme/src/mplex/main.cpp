@@ -1,11 +1,5 @@
-/*
- $Author: All $
- $RCSfile: mplex.cpp,v $
- $Date: 2003/12/31 01:21:59 $
- $Revision: 2.4 $
- */
-
-/** @mainpage Multiplexer
+/** @file
+ * @mainpage Multiplexer
  *
  * @section intro_sec Introduction
  *
@@ -34,23 +28,33 @@
 #include <cstdlib>
 #include <thread>
 
+
+/******************************************************************************
+ * @brief Main entry point for the MPlex server.
+ *
+ * Entry point for the MPlex application server where basic runtime setup is
+ * performed. Command line arguments are processed and the server is initalised
+ * for Websocket or Telnet connections.
+ *
+ * @param argc      Number of argument tokens provided.
+ * @param argv      Array of argument token string.
+ * @return          Program will exit with EXIT_SUCCESS (0) upon a managed
+ *                  shutdown or with EXIT_FAILURE (1) on application error.
+ *****************************************************************************/
 int main(int argc, char *argv[])
 {
-    static int i = 0;
     int fd = -1;
 
 #ifdef tPROFILE
     extern etext();
     monstartup((int)2, etext);
-#endif
+#endif /* tPROFILE */
 
-    assert(i++ == 0); /* Make sure we dont call ourselves... cheap hack! :) */
+    // If there is any error parsing the command line arguments, pasre_arg()
+    // will not return, it will stop application execution.
+    parse_arg(argc, argv, &mplex::g_mplex_arg);
 
-    if (!ParseArg(argc, argv, &mplex::g_mplex_arg))
-    {
-        exit(0);
-    }
-
+    // Catch application termination signals and alarm.
     signal(SIGQUIT, mplex::bye_signal);
     signal(SIGHUP, mplex::bye_signal);
     signal(SIGINT, mplex::bye_signal);
@@ -63,14 +67,11 @@ int main(int argc, char *argv[])
     slog(LOG_ALL, 0, "MPlex compiled with [%s]", get_compiled_hash_defines().c_str());
     slog(LOG_OFF, 0, "Opening mother connection on port %d.", mplex::g_mplex_arg.nMotherPort);
 
-    if (mplex::g_mplex_arg.bWebSockets)
-    {
+    if (mplex::g_mplex_arg.bWebSockets) {
         /* MS2020 Websockets test hack */
         std::thread t1(mplex::runechoserver);
         t1.detach();
-    }
-    else
-    {
+    } else {
         fd = mplex::OpenMother(mplex::g_mplex_arg.nMotherPort);
         Assert(fd != -1, "NO MOTHER CONNECTION.");
 
@@ -89,5 +90,5 @@ int main(int argc, char *argv[])
     mplex::g_MudHook.Unhook();
     mplex::g_MotherHook.Unhook();
 
-    return 0;
+    return EXIT_SUCCESS;
 }

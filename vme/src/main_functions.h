@@ -6,7 +6,7 @@
 #include <string>
 
 // Prototypes
-void ShowUsage(const char *c);
+void show_usage(const char *c);
 void type_validate_64();
 void run_the_game(char *srvcfg);
 void check_idle_event(void *, void *);

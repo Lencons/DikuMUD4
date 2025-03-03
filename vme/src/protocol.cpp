@@ -5,10 +5,6 @@
  $Revision: 2.3 $
  */
 
-#ifdef _WINDOWS
-    #include <winsock2.h>
-#endif
-
 #include "db_file.h"
 #include "essential.h"
 #include "protocol.h"

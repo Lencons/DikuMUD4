@@ -7,10 +7,10 @@
  * 
  * Output File Descriptor
  * ----------------------
- * The global variable g_log_file_fd is used as the file descriptor to
+ * The global variable g_log_file_ptr is used as the file descriptor to
  * write log entries to. This file descriptor is expected to have been
  * initalised as part of the application start process. As check is performed
- * by the logging function slog_raw() to verify that g_log_file_fd is a
+ * by the logging function slog_raw() to verify that g_log_file_ptr is a
  * valid descriptor, otherwise log entries will be dumped to STDERR as a
  * fallback.
  * 
@@ -88,9 +88,9 @@ void slog_raw(log_level level, ubit8 wizinv_level, const std::string &msg)
     }
 
     // Write out the formated log entry.
-    if (g_log_file_fd != NULL) {
-        fprintf(g_log_file_fd, "%s :: %s\n", timestamp, log_msg.c_str());
-        fflush(g_log_file_fd);
+    if (g_log_file_ptr != NULL) {
+        fprintf(g_log_file_ptr, "%s :: %s\n", timestamp, log_msg.c_str());
+        fflush(g_log_file_ptr);
     } else {
         // For whatever reason, we don't have an initalised file pointer.
         std::cerr << "CRITICAL: File descriptor for loging not initalsed!!\n";

@@ -11,7 +11,8 @@
 #include <cstdlib>
 #include <cstring>
 
-FILE *g_log_file_fd = stderr;
+/** File pointer descriptor used for logging system output. */
+FILE *g_log_file_ptr = stderr;
 
 /* ----------------------------------------------------------------- */
 

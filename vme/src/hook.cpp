@@ -5,11 +5,6 @@
  $Revision: 2.2 $
  */
 
-#ifdef _WINDOWS
-    #include <time.h>
-    #include <winsock2.h>
-#endif
-
 #include "hook.h"
 #include "slog.h"
 
@@ -79,12 +74,7 @@ void cHookNative::Unhook()
     }
 
     int i = 0;
-#ifdef _WINDOWS
-    i = closesocket(fd);
-#else
     i = close(fd);
-#endif
-
     fd = -1;
 
     if (i == -1)
@@ -115,34 +105,6 @@ int cHookNative::write(const void *buf, int count)
 
     for (;;)
     {
-#ifdef _WINDOWS
-
-        thisround = send(fd, (char *)buf + sofar, count - sofar, 0);
-
-        if (thisround == 0)
-        {
-            /* This should never happen! */
-            slog(LOG_ALL, 0, "SYSERR: Huh??  write() returned 0???  Please report this!");
-            Unhook();
-            return -1;
-        }
-
-        if (thisround < 0)
-        {
-            /* Transient error? */
-            if (WSAGetLastError() == WSAEWOULDBLOCK || WSAGetLastError() == WSAEINTR)
-            {
-                return sofar;
-            }
-            else
-            {
-                /* Must be a fatal error. */
-                slog(LOG_ALL, 0, "PushWrite (%d): Write to socket, error %d", fd, WSAGetLastError());
-                Unhook();
-                return -1;
-            }
-        }
-#else
         try
         {
             thisround = ::write(fd, (char *)buf + sofar, count - sofar);
@@ -171,7 +133,6 @@ int cHookNative::write(const void *buf, int count)
             Unhook();
             return -1;
         }
-#endif
         sofar += thisround;
 
         if (sofar >= count)
@@ -198,12 +159,7 @@ int cHookNative::read(void *buf, int count)
 
     for (;;)
     {
-#if defined(_WINDOWS)
-        thisround = recv(fd, buf, count - 1, 0);
-#else
         thisround = ::read(fd, buf, count);
-#endif
-
         if (thisround > 0)
         {
             return thisround;
@@ -216,17 +172,10 @@ int cHookNative::read(void *buf, int count)
         }
         else /* (thisround < 0) */
         {
-#ifdef _WINDOWS
-            if (WSAGetLastError() == WSAEWOULDBLOCK || WSAGetLastError() == WSAEINTR)
-            {
-                return 0;
-            }
-#else
             if (errno == EWOULDBLOCK)
             {
                 return 0;
             }
-#endif
             slog(LOG_ALL, 0, "Read from socket %d error %d", fd, errno);
             Unhook();
             return -1;
@@ -406,9 +355,7 @@ int cHook::ReadToQueue()
 
 cCaptainHook::cCaptainHook()
 {
-#ifndef _WINDOWS
     signal(SIGPIPE, SIG_IGN); // Or else pipe fucks the whole thing up...
-#endif
     for (int i = 0; i < 256; i++)
     {
         pfHook[i] = nullptr;

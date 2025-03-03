@@ -10,12 +10,12 @@ FixtureBase::FixtureBase()
     OutputCapture::EnableOutputCapture();
 
     // Redirect away application logging to tmp file
-    g_log_file_fd = tmpfile();
+    g_log_file_ptr = tmpfile();
 }
 
 FixtureBase::~FixtureBase()
 {
-    fclose(g_log_file_fd);
+    fclose(g_log_file_ptr);
     OutputCapture::Instance()->Clear();
 }
 

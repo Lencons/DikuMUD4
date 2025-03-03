@@ -1,10 +1,14 @@
-/*
- $Author: tperry $
- $RCSfile: mplex.h,v $
- $Date: 2001/04/10 21:11:37 $
- $Revision: 2.0 $
+/** @file
+ * @brief Server configuration and startup for MPlex.
+ *
+ * Global application server configuration is stored within g_mplex_arg
+ * which is initalised though parse_arg() at the time of application
+ * initiation. The arg_type structure which g_mplex_arg references
+ * contains all runtime configuration for the application server.
  */
-#pragma once
+
+#ifndef MPLEX_MPLEX_H
+#define MPLEX_MPLEX_H
 
 #include "color.h"
 #include "essential.h"
@@ -48,8 +52,10 @@ extern int g_bHadAlarm;
 extern arg_type g_mplex_arg;
 extern char g_mudname[50];
 
-int ParseArg(int argc, char *argv[], arg_type *arg);
+void parse_arg(int argc, char *argv[], arg_type *arg);
 void bye_signal(int signal);
 void alarm_signal(int sig);
 
-} // namespace mplex
+} /* namespace mplex */
+
+#endif /* MPLEX_MPLEX_H */

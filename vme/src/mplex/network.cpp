@@ -137,7 +137,7 @@ int OpenNetwork(int nPort, char *pcAddress)
     int fdClient = 0;
     int n = 0;
 
-    slog(LOG_ALL, 0, "Open connection to server on %s %d.", pcAddress, nPort);
+    slog(LOG_ALL, 0, "Open connection to server on %s:%d.", pcAddress, nPort);
 
     memset((char *)&server_addr, 0, sizeof(sockaddr_in));
 

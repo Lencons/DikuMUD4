@@ -131,7 +131,6 @@ vme/src/justice.h
 vme/src/magic.cpp
 vme/src/magic.h
 vme/src/main.cpp
-vme/src/main.h
 vme/src/main_functions.cpp
 vme/src/main_functions.h
 vme/src/membug.cpp

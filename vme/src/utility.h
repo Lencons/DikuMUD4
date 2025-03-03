@@ -62,4 +62,4 @@ const char *sprintbit(std::string &dest, ubit32 vektor, const char *names[]);
 char *sprinttype(char *buf, int type, const char *names[]);
 
 extern log_buffer g_log_buf[];
-extern FILE *g_log_file_fd;
+extern FILE *g_log_file_ptr;
