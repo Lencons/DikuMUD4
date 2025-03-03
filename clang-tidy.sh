@@ -184,9 +184,8 @@ vme/src/skills.cpp
 vme/src/skills.h
 vme/src/slime.cpp
 vme/src/slime.h
+vme/src/slog.cpp
 vme/src/slog.h
-vme/src/slog_raw.cpp
-vme/src/slog_raw.h
 vme/src/snoop_data.cpp
 vme/src/snoop_data.h
 vme/src/spec_assign.cpp

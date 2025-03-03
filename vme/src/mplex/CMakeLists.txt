@@ -92,7 +92,7 @@ set(MPLEX_SRCS
         ../signals.cpp
         ../skills.cpp ../skills.h
         ../slime.cpp ../slime.h
-        ../slog_raw.cpp ../slog_raw.h
+        ../slog.cpp ../slog.h
         ../snoop_data.cpp ../snoop_data.h
         ../spec_assign.cpp ../spec_assign.h
         ../spec_procs.cpp ../spec_procs.h

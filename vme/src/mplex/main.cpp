@@ -15,14 +15,6 @@
  * @date 2003/12/31 01:21:59
  * @remark This text is located in mplex/main.cpp
  */
-#ifdef _WINDOWS
-    #include "string.h"
-    #include "telnet.h"
-    #include "winbase.h"
-    #include "winsock2.h"
-
-    #include <time.h>
-#endif
 
 #include "MUDConnector.h"
 #include "compile_defines.h"
@@ -59,13 +51,12 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
-#ifndef _WINDOWS
     signal(SIGQUIT, mplex::bye_signal);
     signal(SIGHUP, mplex::bye_signal);
     signal(SIGINT, mplex::bye_signal);
     signal(SIGTERM, mplex::bye_signal);
     signal(SIGALRM, mplex::alarm_signal);
-#endif
+
     /* MS2020 Websockets test hack */
     mplex::translate_init();
 
@@ -92,11 +83,7 @@ int main(int argc, char *argv[])
     }
 
     /* Subtract stdout, stdin, stderr, fdmud, fdmother and 2 to be safe. */
-#if defined(_WINDOWS)
-    g_nActiveConnections = 256 - 3 - 2 - 2;
-#else
     mplex::g_nConnectionsLeft = getdtablesize() - 3 - 2 - 2;
-#endif
     mplex::Control();
 
     mplex::g_MudHook.Unhook();

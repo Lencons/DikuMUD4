@@ -1,8 +1,13 @@
-#pragma once
 
-#include "slog_raw.h"
+#ifndef VME_FORMATTER_H
+#define VME_FORMATTER_H
 
 #include <boost/format.hpp>
+
+// Include items needed for slog_raw() directly as slog.h clashes.
+#include "essential.h"
+void slog_raw(log_level level, ubit8 wizinv_level, const std::string &msg);
+
 
 /**
  * Goto last function - that is the one you want to look at
@@ -127,3 +132,5 @@ std::string format_to_str(const char *fmt_str, ParamPack &&...args) noexcept
 }
 
 } // namespace diku
+
+#endif /* VME_FORMATTER_H */

@@ -18,6 +18,7 @@ CTestTestfile.cmake
 Testing/
 core.*
 gmon.out
+vme/src/*/Doxyfile.*
 
 # Unit testing artifacts created from the build process.
 unit_tests/CTestTestfile.cmake

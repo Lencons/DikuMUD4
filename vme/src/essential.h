@@ -19,11 +19,6 @@
 #include <ctime>
 #include <type_traits>
 
-#ifdef _WINDOWS
-    #include <ctype.h>
-char *crypt(char *salt, char *password);
-#endif
-
 enum log_level
 {
     LOG_OFF,

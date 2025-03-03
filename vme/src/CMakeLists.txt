@@ -90,8 +90,7 @@ set(VME_SRCS
         signals.cpp signals.h
         skills.cpp skills.h
         slime.cpp slime.h
-        slog.h
-        slog_raw.cpp slog_raw.h
+        slog.cpp slog.h
         snoop_data.cpp snoop_data.h
         spec_assign.cpp spec_assign.h
         spec_procs.cpp spec_procs.h
@@ -141,7 +140,7 @@ target_link_libraries(vme
         )
 
 if (DOXYGEN_FOUND)
-    set(DOXYGEN_PROJECT_NAME "Diku MUD III - VME")
+    set(DOXYGEN_PROJECT_NAME "DikuMUD IV - VME")
     set(DOXYGEN_HTML_OUTPUT ".")
     set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/docs/vme)
     doxygen_add_docs(
